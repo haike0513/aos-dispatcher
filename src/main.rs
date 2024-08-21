@@ -1,4 +1,5 @@
 use std::time::Duration;
+use aos_dispatcher::ws;
 use axum::{
     Router,
     routing::post,
@@ -44,6 +45,7 @@ async fn main() {
         .route("/admin/list_workers", post(list_workers))
         .route("/admin/list_questions", post(list_questions_handler))
         .route("/admin/list_answers", post(list_answers_handler))
+        .route("/ws", get(ws::handler))
         .layer(cors)
         .layer(
             ServiceBuilder::new()

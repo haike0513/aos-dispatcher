@@ -8,3 +8,4 @@ pub mod db;
 pub mod schema;
 pub mod opml;
 pub mod tee;
+pub mod ws;
