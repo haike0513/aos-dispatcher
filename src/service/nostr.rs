@@ -7,7 +7,12 @@ use nostr::{Keys, Result};
 
 use nostr_sdk::{Client, Filter, Kind, Metadata, Url, RelayPoolNotification};
 
-pub async fn subscription_service(){
+use crate::server::server::SharedState;
+use crate::tee::model::create_question;
+
+pub async fn subscription_service(
+  server: SharedState,
+){
   let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
   let bech32_address = keys.public_key().to_bech32().unwrap();
 
@@ -38,6 +43,31 @@ pub async fn subscription_service(){
     }  = notification {
       // tracing::info!("job notification {:#?}", event);
       if event.kind() == Kind::JobRequest(5050) {
+
+        let uuid = uuid::Uuid::new_v4();
+        let request_id = uuid.to_string();
+        {
+          let mut server = server.0.write().await;
+          let mut conn = server.pg.get().expect("Failed to get a connection from pool");
+          let message = event.content().into();
+          let message_id = event.id().to_string();
+          let conversation_id = event.id().to_string();
+          let model = event.id().to_string();
+          let callback_url = event.id().to_string();
+
+          let q = create_question(
+            &mut conn, 
+            request_id.clone(),
+            message,
+            message_id,
+            conversation_id,
+            model, 
+            callback_url
+          );
+          tracing::debug!("create task {:#?}", q.request_id);
+        }
+
+
         tracing::info!("JobRequest 5050 {:#?}", event.kind());
       } else {
         tracing::info!("JobRequest other {:#?}", event.kind());

@@ -23,9 +23,6 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
-
-    let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service());
-
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST])
@@ -33,6 +30,10 @@ async fn main() {
 
     let config = aos_dispatcher::config::Config::new();
     let server = SharedState::new(config).await;
+
+    let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
+        server.clone()
+    ));
 
     
 
