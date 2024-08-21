@@ -1,3 +1,4 @@
+use std::net::SocketAddr;
 use std::time::Duration;
 use aos_dispatcher::ws;
 use axum::{
@@ -23,6 +24,8 @@ async fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
+    let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service());
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST])
@@ -30,6 +33,8 @@ async fn main() {
 
     let config = aos_dispatcher::config::Config::new();
     let server = SharedState::new(config).await;
+
+    
 
     // build our application with a single route
     let app = Router::new()
@@ -55,7 +60,15 @@ async fn main() {
         )
         .with_state(server);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let server_task = tokio::spawn(async {
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
+    });
+
+    let (_,_) = tokio::join!(
+        nostr_sub_task,
+        server_task,
+    );
+
 }
 

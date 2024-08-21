@@ -9,18 +9,20 @@ use axum::{
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::CloseFrame;
 // use futures::{sink::SinkExt, stream::StreamExt};
-use std::borrow::Cow;
+use std::{borrow::Cow, net::ToSocketAddrs};
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 pub async fn handler(
   ws: WebSocketUpgrade,
-  // ConnectInfo(addr): ConnectInfo<SocketAddr>,
+  ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Response {
-  ws.on_upgrade(move |socket| handle_socket(socket))
+  tracing::info!("{} connect", addr);
+  ws.on_upgrade(move |socket| handle_socket(socket, addr))
 }
-async fn handle_socket(mut socket: WebSocket, 
-  // who: SocketAddr
+async fn handle_socket(
+  mut socket: WebSocket, 
+  who: SocketAddr
 ) {
   while let Some(msg) = socket.recv().await {
       let msg = if let Ok(msg) = msg {
