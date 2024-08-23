@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
+use axum::extract::ws::WebSocket;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use tokio::sync::{mpsc, oneshot, RwLock};
@@ -20,20 +21,22 @@ pub struct Server {
     pub pg: Pool<ConnectionManager<PgConnection>>,
     pub tee_channels: HashMap<String, mpsc::Sender<AnswerReq>>,
     pub opml_channels: HashMap<String, mpsc::Sender<OpmlAnswer>>,
+    pub worker_channels: HashMap<String, mpsc::Sender<String>>,
+    pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SharedState(pub(crate) Arc<RwLock<Server>>);
 
 impl SharedState {
-    pub async fn new(config: Config) -> Self {
-        let server = Server::new(config).await;
+    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>) -> Self {
+        let server = Server::new(config, dispatch_task_tx).await;
         SharedState(Arc::new(RwLock::new(server)))
     }
 }
 
 impl Server {
-    pub async fn new(config: Config) -> Self {
+    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>) -> Self {
         let mut csprng = OsRng;
         let sign_key = SigningKey::generate(&mut csprng);
         dotenv().ok();
@@ -48,6 +51,8 @@ impl Server {
             pg,
             tee_channels: Default::default(),
             opml_channels: Default::default(),
+            worker_channels: Default::default(),
+            dispatch_task_tx: Some(dispatch_task_tx),
         }
     }
 

@@ -9,6 +9,7 @@ use axum::error_handling::HandleErrorLayer;
 use axum::handler::Handler;
 use axum::http::Method;
 use axum::routing::get;
+use tokio::sync::mpsc;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use aos_dispatcher::tee::handler::*;
@@ -16,6 +17,7 @@ use aos_dispatcher::server::server::SharedState;
 use aos_dispatcher::opml::handler::*;
 
 use tower_http::cors::{Any, CorsLayer};
+use aos_dispatcher::service;
 
 
 #[tokio::main]
@@ -28,11 +30,24 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST])
         .allow_headers(Any);
 
+    let (dispatch_task_tx, dispatch_task_rx) = mpsc::channel::<u32>(200);
+
+
     let config = aos_dispatcher::config::Config::new();
-    let server = SharedState::new(config).await;
+    let mut server = SharedState::new(config, dispatch_task_tx.clone()).await;
+
+
 
     let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
-        server.clone()
+        server.clone(),
+        dispatch_task_tx.clone(),
+    ));
+
+
+
+    let dispatch_task = tokio::spawn(service::task::dispatch_task(
+        server.clone(),
+        dispatch_task_rx,
     ));
 
     
@@ -52,6 +67,7 @@ async fn main() {
         .route("/admin/list_questions", post(list_questions_handler))
         .route("/admin/list_answers", post(list_answers_handler))
         .route("/ws", get(ws::handler))
+        .with_state(server)
         .layer(cors)
         .layer(
             ServiceBuilder::new()
@@ -59,16 +75,17 @@ async fn main() {
                 .timeout(Duration::from_secs(600))
                 .layer(TraceLayer::new_for_http())
         )
-        .with_state(server);
+        ;
 
     let server_task = tokio::spawn(async {
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
         axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
     });
 
-    let (_,_) = tokio::join!(
+    let _ = tokio::join!(
         nostr_sub_task,
         server_task,
+        dispatch_task,
     );
 
 }

@@ -6,12 +6,14 @@ use nostr::nips::nip19::ToBech32;
 use nostr::{Keys, Result};
 
 use nostr_sdk::{Client, Filter, Kind, Metadata, RelayPoolNotification, SingleLetterTag, TagKind, Url};
+use tokio::sync::mpsc;
 
 use crate::server::server::SharedState;
 use crate::tee::model::create_question;
-
+pub mod util;
 pub async fn subscription_service(
   server: SharedState,
+  mut dispatch_task_rx: mpsc::Sender<u32>,
 ){
   let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
   let bech32_address = keys.public_key().to_bech32().unwrap();
@@ -48,41 +50,12 @@ pub async fn subscription_service(
         tracing::info!("receive task {:#?}", event.id());
         // let uuid = uuid::Uuid::new_v4();
         let request_id =  event.id().to_string();
-        let mut e_model = None;
-        let mut e_prompt = None;
+        // let mut e_model = None;
+        // let mut e_prompt = None;
+
+        let aos_task = util::AosTask::parse_event(&event).unwrap();
 
         {
-          let model_tag = event.tags.iter().find(|t| { 
-            if t.kind() != TagKind::Custom("param".into()) {
-              return  false;
-            }
-            let content = t.as_vec();
-            if let Some(p) = content.get(1) {
-              if p.eq(&String::from("model")) {
-                e_model = content.get(2).map(|m| {
-                  m.clone()
-                })
-              }
-              ;
-            }
-            return  false;
-          });
-
-          let _ = event.tags.iter().find(|t| { 
-            if t.kind() != TagKind::SingleLetter(SingleLetterTag::lowercase(nostr_sdk::Alphabet::I)) {
-              return  false;
-            }
-            let content = t.as_vec();
-            if let Some(p) = content.get(2) {
-              if p.eq(&String::from("prompt")) {
-                e_prompt = content.get(1).map(|m| {
-                  m.clone()
-                })
-              }
-              ;
-            }
-            return  false;
-          });
           
           // tracing::debug!("receive task model {:#?}", e_model);
           // tracing::debug!("receive task e_prompt {:#?}", e_prompt);
@@ -90,10 +63,10 @@ pub async fn subscription_service(
 
           let mut server = server.0.write().await;
           let mut conn = server.pg.get().expect("Failed to get a connection from pool");
-          let message = e_prompt.unwrap_or_default();
+          let message = aos_task.prompt.unwrap_or_default();
           let message_id = event.id().to_string();
           let conversation_id = event.id().to_string();
-          let model = e_model.unwrap_or_default();
+          let model = aos_task.model.unwrap_or_default();
           let callback_url = event.id().to_string();
 
           let q = create_question(
@@ -107,6 +80,7 @@ pub async fn subscription_service(
           );
         }
 
+        dispatch_task_rx.send(2).await.unwrap();
         tracing::debug!("JobRequest 5050 {:#?}", event);
 
         tracing::info!("JobRequest 5050 {:#?}", event.kind());
