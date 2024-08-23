@@ -32,15 +32,16 @@ async fn main() {
 
     let (dispatch_task_tx, dispatch_task_rx) = mpsc::channel::<u32>(200);
 
+    let (job_status_tx, job_status_rx) = mpsc::channel::<u32>(200);
 
     let config = aos_dispatcher::config::Config::new();
-    let mut server = SharedState::new(config, dispatch_task_tx.clone()).await;
+    let mut server = SharedState::new(config, dispatch_task_tx.clone(), job_status_tx.clone()).await;
 
 
 
     let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
         server.clone(),
-        dispatch_task_tx.clone(),
+        job_status_rx,
     ));
 
 

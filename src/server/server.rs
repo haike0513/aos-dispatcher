@@ -23,20 +23,25 @@ pub struct Server {
     pub opml_channels: HashMap<String, mpsc::Sender<OpmlAnswer>>,
     pub worker_channels: HashMap<String, mpsc::Sender<String>>,
     pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
+    pub job_status_tx: Option<mpsc::Sender<u32>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SharedState(pub(crate) Arc<RwLock<Server>>);
 
 impl SharedState {
-    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>) -> Self {
-        let server = Server::new(config, dispatch_task_tx).await;
+    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>,
+        job_status_tx: mpsc::Sender<u32>,
+    ) -> Self {
+        let server = Server::new(config, dispatch_task_tx, job_status_tx).await;
         SharedState(Arc::new(RwLock::new(server)))
     }
 }
 
 impl Server {
-    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>) -> Self {
+    pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>,
+        job_status_tx: mpsc::Sender<u32>,
+    ) -> Self {
         let mut csprng = OsRng;
         let sign_key = SigningKey::generate(&mut csprng);
         dotenv().ok();
@@ -53,6 +58,7 @@ impl Server {
             opml_channels: Default::default(),
             worker_channels: Default::default(),
             dispatch_task_tx: Some(dispatch_task_tx),
+            job_status_tx: Some(job_status_tx),
         }
     }
 

@@ -36,7 +36,14 @@ pub async fn dispatch_task(
       let worker_tx = server.worker_channels.get(k);
       if let Some(tx) =  worker_tx {
           tx.send("value".into()).await.unwrap();
-          tracing::debug!("start dispatch task to {}", k);  
+          tracing::debug!("start dispatch task to {}", k); 
+
+          // TODO: Mock
+          tracing::debug!("mock receive job status"); 
+          let job_status_tx = server.job_status_tx.clone().unwrap();
+          job_status_tx.send(1).await.unwrap();
+          tracing::debug!("mock send job status"); 
+
       }else {
         tracing::info!("start dispatch task error {} for no worker connect", i);  
       }
