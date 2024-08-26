@@ -1,6 +1,7 @@
+use diesel::PgConnection;
 use nostr_sdk::{Event, Kind, SingleLetterTag, TagKind};
 
-use crate::tee::model::Params;
+use crate::tee::model::{get_tee_question, Params, Question};
 
 pub struct  AosTask {
   pub model: Option<String>,
@@ -58,4 +59,8 @@ impl  AosTask {
         params,
       })
     }
+}
+
+pub fn query_question(conn: &mut PgConnection) -> Result<Vec<Question>, diesel::result::Error> {
+  get_tee_question(conn)
 }

@@ -1,11 +1,12 @@
 const MNEMONIC_PHRASE: &str = "equal dragon fabric refuse stable cherry smoke allow alley easy never medal attend together lumber movie what sad siege weather matrix buffalo state shoot";
 const DEFAULT_RELAY: &str = "ws://localhost:7010";
 
+use model::JobAnswer;
 use nostr::nips::nip06::FromMnemonic;
 use nostr::nips::nip19::ToBech32;
 use nostr::{Keys, Result};
 
-use nostr_sdk::{Client, Event, EventBuilder, Filter, Kind, Metadata, RelayPoolNotification, SingleLetterTag, Tag, TagKind, Url};
+use nostr_sdk::{Client, Event, EventBuilder, EventId, Filter, Kind, Metadata, RelayPoolNotification, SingleLetterTag, Tag, TagKind, Url};
 use tokio::sync::mpsc;
 use tracing::instrument::WithSubscriber;
 
@@ -13,9 +14,10 @@ use crate::opml::model::{create_opml_question, OpmlRequest};
 use crate::server::server::SharedState;
 use crate::tee::model::{create_question, OperatorReq};
 pub mod util;
+pub mod model;
 pub async fn subscription_service(
   server: SharedState,
-  mut job_status_rx: mpsc::Receiver<u32>,
+  mut job_status_rx: mpsc::Receiver<JobAnswer>,
 ){
   let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
   let bech32_address = keys.public_key().to_bech32().unwrap();
@@ -35,9 +37,13 @@ pub async fn subscription_service(
 
     while let Some(job_status) = job_status_rx.recv().await {
       tracing::info!("job status {:#?}", job_status);
-      let tags: Vec<Tag> = vec![];
-      let event = EventBuilder::text_note("content", tags);
+      let event_id = job_status.event_id;
+      let origin_event_filter = Filter::new().id(event_id);
+      let job_request = submit_client.get_events_of(vec![origin_event_filter], nostr_sdk::EventSource::Both { timeout: None, specific_relays: None }).await.unwrap_or_default();
+
+      let event = EventBuilder::job_result(job_request.get(0).unwrap().clone(), "tags", 0,  None).unwrap();
       submit_client.send_event_builder(event).await.unwrap();
+
     }
   });
 

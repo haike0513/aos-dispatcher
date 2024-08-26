@@ -11,6 +11,7 @@ use reqwest::Client;
 use dotenvy::dotenv;
 
 use crate::config::Config;
+use crate::service::nostr::model::JobAnswer;
 use crate::tee::model::{Operator, Params, OperatorReq, WorkerStatus, OperatorResp, AnswerReq};
 use crate::opml::model::{OpmlAnswer, OpmlRequest};
 
@@ -23,7 +24,7 @@ pub struct Server {
     pub opml_channels: HashMap<String, mpsc::Sender<OpmlAnswer>>,
     pub worker_channels: HashMap<String, mpsc::Sender<String>>,
     pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
-    pub job_status_tx: Option<mpsc::Sender<u32>>,
+    pub job_status_tx: Option<mpsc::Sender<JobAnswer>>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +32,7 @@ pub struct SharedState(pub(crate) Arc<RwLock<Server>>);
 
 impl SharedState {
     pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>,
-        job_status_tx: mpsc::Sender<u32>,
+        job_status_tx: mpsc::Sender<JobAnswer>,
     ) -> Self {
         let server = Server::new(config, dispatch_task_tx, job_status_tx).await;
         SharedState(Arc::new(RwLock::new(server)))
@@ -40,7 +41,7 @@ impl SharedState {
 
 impl Server {
     pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>,
-        job_status_tx: mpsc::Sender<u32>,
+        job_status_tx: mpsc::Sender<JobAnswer>,
     ) -> Self {
         let mut csprng = OsRng;
         let sign_key = SigningKey::generate(&mut csprng);

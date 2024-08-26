@@ -232,6 +232,13 @@ pub fn create_tee_answer(conn: &mut PgConnection, req: &AnswerReq) -> Result<(),
     Ok(())
 }
 
+pub fn get_tee_question(conn: &mut PgConnection) -> Result<Vec<Question>, diesel::result::Error> {
+    let r = questions::table
+        .select(Question::as_select())
+        // .as_query()
+        .load(conn);
+    r
+}
 
 pub fn get_question_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Question, diesel::result::Error> {
     questions::table

@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::time::Duration;
+use aos_dispatcher::service::nostr::model::JobAnswer;
 use aos_dispatcher::ws;
 use axum::{
     Router,
@@ -23,7 +24,7 @@ use aos_dispatcher::service;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -32,7 +33,7 @@ async fn main() {
 
     let (dispatch_task_tx, dispatch_task_rx) = mpsc::channel::<u32>(200);
 
-    let (job_status_tx, job_status_rx) = mpsc::channel::<u32>(200);
+    let (job_status_tx, job_status_rx) = mpsc::channel::<JobAnswer>(200);
 
     let config = aos_dispatcher::config::Config::new();
     let mut server = SharedState::new(config, dispatch_task_tx.clone(), job_status_tx.clone()).await;
