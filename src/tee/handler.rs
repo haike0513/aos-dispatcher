@@ -43,7 +43,7 @@ pub async fn tee_question_handler(State(server): State<SharedState>, req: Json<Q
         let mut server = server.0.write().await;
 
         let mut conn = server.pg.get().expect("Failed to get a connection from pool");
-        let q = create_question(&mut conn, request_id.clone(), req.message.clone(), req.message_id.clone(), req.conversation_id.clone(), req.model.clone(), req.callback_url.clone());
+        let q = create_question(&mut conn, request_id.clone(), req.message.clone(), req.message_id.clone(), req.conversation_id.clone(), req.model.clone(), req.callback_url.clone()).expect("Error saving new question");
 
 
         tracing::info!("request_id: {}", request_id);

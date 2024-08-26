@@ -35,14 +35,22 @@ pub async fn subscription_service(
   let submit_client = client.clone();
   let job_status_submit = tokio::spawn(async move {
 
+
     while let Some(job_status) = job_status_rx.recv().await {
       tracing::info!("job status {:#?}", job_status);
       let event_id = job_status.event_id;
       let origin_event_filter = Filter::new().id(event_id);
-      let job_request = submit_client.get_events_of(vec![origin_event_filter], nostr_sdk::EventSource::Both { timeout: None, specific_relays: None }).await.unwrap_or_default();
-
+      let job_request = submit_client
+        .get_events_of(
+          vec![origin_event_filter],
+          nostr_sdk::EventSource::Relays { timeout: None, specific_relays: None }
+        )
+        .await.unwrap();
       let event = EventBuilder::job_result(job_request.get(0).unwrap().clone(), "tags", 0,  None).unwrap();
+
+      tracing::debug!("sending job result to nostr relay, {:#?}", event);
       submit_client.send_event_builder(event).await.unwrap();
+      tracing::debug!("sended job result to nostr relay");
 
     }
   });
@@ -101,39 +109,40 @@ pub async fn subscription_service(
             callback_url.clone(),
           );
 
-          let op_req = OperatorReq {
-            request_id: q.request_id.clone(),
-            node_id: "".to_string(),
-            model: model.clone(),
-            prompt: message.clone(),
-            prompt_hash: "".to_string(),
-            signature: "".to_string(),
-            params: aos_task.params.clone(),
-        };
-          let work_name = server.tee_operator_collections.keys().next().unwrap().clone();
-          server.send_tee_inductive_task(work_name, op_req).await;
+          if let Ok(q) =  q {              
+              let op_req = OperatorReq {
+                request_id: q.request_id.clone(),
+                node_id: "".to_string(),
+                model: model.clone(),
+                prompt: message.clone(),
+                prompt_hash: "".to_string(),
+                signature: "".to_string(),
+                params: aos_task.params.clone(),
+              };
+              let work_name = server.tee_operator_collections.keys().next().unwrap().clone();
+              server.send_tee_inductive_task(work_name, op_req).await;
 
-
-          tracing::debug!("dispatch opml task {:#?}", request_id);
-          let opml_request = OpmlRequest {
-            model: model.clone(),
-            prompt: message.clone(),
-            req_id: request_id.clone(),
-            callback: callback_url.clone(),
-        };
-
-        if let Err(e) = create_opml_question(&mut conn, request_id.clone(), &opml_request) {
-          tracing::error!("Failed to store OPML question: {:?}", e);
-        }
-
-
-        // Send the request to the OPML server
-        if let Err(e) = server.send_opml_request(opml_request).await {
-          tracing::error!("Failed to send OPML request: {:?}", e);
-        }
-          
-        }
-        tracing::debug!("dispatch task end {:#?}", request_id);
+              tracing::debug!("dispatch opml task {:#?}", request_id);
+              let opml_request = OpmlRequest {
+                model: model.clone(),
+                prompt: message.clone(),
+                req_id: request_id.clone(),
+                callback: callback_url.clone(),
+              };
+    
+              if let Err(e) = create_opml_question(&mut conn, request_id.clone(), &opml_request) {
+                tracing::error!("Failed to store OPML question: {:?}", e);
+              }
+    
+    
+              // Send the request to the OPML server
+              if let Err(e) = server.send_opml_request(opml_request).await {
+                tracing::error!("Failed to send OPML request: {:?}", e);
+              }
+              
+            }
+            tracing::debug!("dispatch task end {:#?}", request_id);
+          }
       } else {
         tracing::info!("JobRequest other {:#?}", event.kind());
       }

@@ -193,7 +193,7 @@ pub fn list_answers(conn: &mut PgConnection) -> Result<Vec<Answer>, diesel::resu
     answers.load::<Answer>(conn)
 }
 
-pub fn create_question(conn: &mut PgConnection, q_id: String, q_message: String, q_message_id: String, q_conversation_id: String, q_model: String, q_callback_url: String) -> Question {
+pub fn create_question(conn: &mut PgConnection, q_id: String, q_message: String, q_message_id: String, q_conversation_id: String, q_model: String, q_callback_url: String) -> Result<Question, diesel::result::Error> {
     let q = Question {
         request_id: q_id,
         message: q_message,
@@ -208,7 +208,7 @@ pub fn create_question(conn: &mut PgConnection, q_id: String, q_message: String,
         .values(&q)
         .returning(Question::as_returning())
         .get_result(conn)
-        .expect("Error saving new question")
+        // .expect("Error saving new question")
 }
 
 
