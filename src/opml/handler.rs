@@ -10,6 +10,7 @@ use diesel::{PgConnection, RunQueryDsl};
 use crate::opml::model::*;
 use crate::schema::opml_answers::dsl::opml_answers;
 use tokio::time::{timeout, Duration};
+use std::str::FromStr;
 use std::time::Duration as StdDuration;
 use tokio::sync::mpsc;
 
@@ -96,7 +97,7 @@ pub async fn opml_callback(State(server): State<SharedState>, Json(req): Json<Op
     let mut conn = server.pg.get().expect("Failed to get a connection from pool");
     if let Some(job_status_tx) = server.job_status_tx.clone() {
         job_status_tx.send(JobAnswer {
-            event_id: EventId::all_zeros(),
+            event_id: EventId::from_str(&req.req_id).unwrap(),
         }).await.unwrap();
     }
 

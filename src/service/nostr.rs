@@ -45,12 +45,23 @@ pub async fn subscription_service(
           vec![origin_event_filter],
           nostr_sdk::EventSource::Relays { timeout: None, specific_relays: None }
         )
-        .await.unwrap();
-      let event = EventBuilder::job_result(job_request.get(0).unwrap().clone(), "tags", 0,  None).unwrap();
+        .await;
+      if let Ok(job_request) = job_request {
+        match job_request.get(0) {
+            Some(jq) => {
+              let event = EventBuilder::job_result(jq.clone(), "tags", 0,  None).unwrap();
+              tracing::debug!("sending job result to nostr relay, {:#?}", event);
+              submit_client.send_event_builder(event).await.unwrap();
+              tracing::debug!("sended job result to nostr relay");
+            },
+            None => {
+              tracing::error!("There is no event id {:#?} on relay", event_id);
 
-      tracing::debug!("sending job result to nostr relay, {:#?}", event);
-      submit_client.send_event_builder(event).await.unwrap();
-      tracing::debug!("sended job result to nostr relay");
+            },
+        }
+      } else {
+        tracing::error!("There is no event id {:#?} on relay", event_id);
+      }
 
     }
   });

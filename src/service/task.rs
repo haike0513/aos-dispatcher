@@ -58,10 +58,13 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
             let work_name = server
                 .tee_operator_collections
                 .keys()
-                .next()
-                .unwrap()
-                .clone();
-            server.send_tee_inductive_task(work_name, op_req).await;
+                .next();
+                // .unwrap()
+                // .clone();
+
+              if let Some(work_name) = work_name  {
+                server.send_tee_inductive_task(work_name.clone(), op_req).await;  
+              }
 
             // Send the request to the OPML server
 

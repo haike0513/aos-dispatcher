@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::str::FromStr;
 use axum::{BoxError, debug_handler, extract, Json};
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -126,7 +127,7 @@ pub async fn tee_callback(State(server): State<SharedState>, Json(req): Json<Ans
 
     if let Some(job_status_tx) = server.job_status_tx.clone() {
         job_status_tx.send(JobAnswer {
-            event_id: EventId::all_zeros(),
+            event_id: EventId::from_str(&req.request_id).unwrap(),
         }).await.unwrap();
     }
 
