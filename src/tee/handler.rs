@@ -4,9 +4,11 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use diesel::{Insertable, Queryable, RunQueryDsl, Selectable};
+use nostr_sdk::EventId;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use uuid::uuid;
+use crate::service::nostr::model::JobAnswer;
 use crate::tee::model::*;
 use crate::server::server::SharedState;
 use crate::tee::model::list_questions;
@@ -121,6 +123,12 @@ pub async fn tee_callback(State(server): State<SharedState>, Json(req): Json<Ans
 
     let server = server.0.read().await;
     let mut conn = server.pg.get().expect("Failed to get a connection from pool");
+
+    if let Some(job_status_tx) = server.job_status_tx.clone() {
+        job_status_tx.send(JobAnswer {
+            event_id: EventId::all_zeros(),
+        }).await.unwrap();
+    }
 
     match create_tee_answer(&mut conn, &req) {
         Ok(_) => {
