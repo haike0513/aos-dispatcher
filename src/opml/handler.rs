@@ -98,6 +98,7 @@ pub async fn opml_callback(State(server): State<SharedState>, Json(req): Json<Op
     if let Some(job_status_tx) = server.job_status_tx.clone() {
         job_status_tx.send(JobAnswer {
             event_id: EventId::from_str(&req.req_id).unwrap(),
+            answer: req.answer.clone(),
         }).await.unwrap();
     }
 

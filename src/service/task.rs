@@ -94,13 +94,13 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
                         tracing::debug!("start dispatch task to {}", k);
 
                         // TODO: Mock
-                        tracing::debug!("mock receive job status");
-                        let job_status_tx = server.job_status_tx.clone().unwrap();
-                        let job_answer = JobAnswer {
-                            event_id: EventId::from_str(&q.message_id).unwrap(),
-                        };
-                        tracing::debug!("start send job status {:#?}", job_answer);
-                        job_status_tx.send(job_answer).await.unwrap();
+                        // tracing::debug!("mock receive job status");
+                        // let job_status_tx = server.job_status_tx.clone().unwrap();
+                        // let job_answer = JobAnswer {
+                        //     event_id: EventId::from_str(&q.message_id).unwrap(),
+                        // };
+                        // tracing::debug!("start send job status {:#?}", job_answer);
+                        // job_status_tx.send(job_answer).await.unwrap();
                     } else {
                         tracing::debug!("There is no question wait to dispatch");
                     }

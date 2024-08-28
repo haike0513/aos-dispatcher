@@ -129,6 +129,7 @@ pub async fn tee_callback(State(server): State<SharedState>, Json(req): Json<Ans
     if let Some(job_status_tx) = server.job_status_tx.clone() {
         job_status_tx.send(JobAnswer {
             event_id: EventId::from_str(&req.request_id).unwrap(),
+            answer: req.answer.clone(),
         }).await.unwrap();
     }
 

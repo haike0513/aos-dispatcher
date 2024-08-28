@@ -51,7 +51,7 @@ pub async fn subscription_service(
       if let Ok(job_request) = job_request {
         match job_request.get(0) {
             Some(jq) => {
-              let event = EventBuilder::job_result(jq.clone(), "tags", 0,  None).unwrap();
+              let event = EventBuilder::job_result(jq.clone(), job_status.answer.clone(), 0,  None).unwrap();
               tracing::debug!("sending job result to nostr relay, {:#?}", event);
               submit_client.send_event_builder(event).await.unwrap();
               tracing::debug!("sended job result to nostr relay");
