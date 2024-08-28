@@ -18,6 +18,8 @@ pub mod model;
 pub async fn subscription_service(
   server: SharedState,
   mut job_status_rx: mpsc::Receiver<JobAnswer>,
+  mut dispatch_task_tx: mpsc::Sender<u32>
+
 ){
   let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
   let bech32_address = keys.public_key().to_bech32().unwrap();
@@ -84,15 +86,15 @@ pub async fn subscription_service(
       // tracing::info!("job notification {:#?}", event);
       if event.kind() == Kind::JobRequest(5050) {
 
-        tracing::info!("receive task {:#?}", event);
-        tracing::info!("receive task {:#?}", event.id());
+        // tracing::info!("receive task {:#?}", event);
+        tracing::info!("receive task event {:#?}", event.id());
         // let uuid = uuid::Uuid::new_v4();
         let request_id =  event.id().to_string();
         // let mut e_model = None;
         // let mut e_prompt = None;
 
         let aos_task = util::AosTask::parse_event(&event).unwrap();
-        tracing::debug!("dispatch task start {:#?}", request_id);
+        tracing::debug!("start store task start {:#?}", request_id);
 
         {
 
@@ -108,8 +110,6 @@ pub async fn subscription_service(
           // dispatch_task_rx.send(2).await.unwrap();
 
           
-          // start dispatch tee task
-          tracing::debug!("dispatch tee task {:#?}", request_id);
           let q = create_question(
             &mut conn, 
             request_id.clone(),
@@ -120,39 +120,58 @@ pub async fn subscription_service(
             callback_url.clone(),
           );
 
-          if let Ok(q) =  q {              
-              let op_req = OperatorReq {
-                request_id: q.request_id.clone(),
-                node_id: "".to_string(),
-                model: model.clone(),
-                prompt: message.clone(),
-                prompt_hash: "".to_string(),
-                signature: "".to_string(),
-                params: aos_task.params.clone(),
-              };
-              let work_name = server.tee_operator_collections.keys().next().unwrap().clone();
-              server.send_tee_inductive_task(work_name, op_req).await;
+          if let Ok(q) =  q {
+            // start dispatch tee task
+            tracing::info!("store task success: {:#?}", q.request_id);
 
-              tracing::debug!("dispatch opml task {:#?}", request_id);
-              let opml_request = OpmlRequest {
-                model: model.clone(),
-                prompt: message.clone(),
-                req_id: request_id.clone(),
-                callback: callback_url.clone(),
-              };
+
+            tracing::debug!("emit dispatch task: {:#?}", q.request_id);
+            dispatch_task_tx.send(1).await.unwrap_or_default();
+
+            // let hash = &q.request_id;
+            // let signature = server.sign(hash.as_bytes());       
+            //   let op_req = OperatorReq {
+            //     request_id: q.request_id.clone(),
+            //     node_id: "".to_string(),
+            //     model: model.clone(),
+            //     prompt: message.clone(),
+            //     prompt_hash: hash.into(),
+            //     signature: signature.to_string(),
+            //     params: aos_task.params.clone(),
+            //     r#type: "TEE".to_string(),
+            //   };
+              // let next_work_name = server.tee_operator_collections.keys().next();
+              // match  next_work_name {
+              //   Some(work_name) => {
+              //     server.send_tee_inductive_task(work_name.clone(), op_req).await;
+              //     tracing::debug!("dispatched task {:#?}", request_id);
+              //   },
+              //   None => {
+              //     tracing::warn!("there is no tee operator");
+              //   },
+              // }
+
+              // // start dispatch opml task
+              // tracing::debug!("dispatch opml task {:#?}", request_id);
+              // let opml_request = OpmlRequest {
+              //   model: model.clone(),
+              //   prompt: message.clone(),
+              //   req_id: request_id.clone(),
+              //   callback: callback_url.clone(),
+              // };
     
-              if let Err(e) = create_opml_question(&mut conn, request_id.clone(), &opml_request) {
-                tracing::error!("Failed to store OPML question: {:?}", e);
-              }
+              // if let Err(e) = create_opml_question(&mut conn, request_id.clone(), &opml_request) {
+              //   tracing::error!("Failed to store OPML question: {:?}", e);
+              // }
     
     
-              // Send the request to the OPML server
-              if let Err(e) = server.send_opml_request(opml_request).await {
-                tracing::error!("Failed to send OPML request: {:?}", e);
-              }
+              // // Send the request to the OPML server
+              // if let Err(e) = server.send_opml_request(opml_request).await {
+              //   tracing::error!("Failed to send OPML request: {:?}", e);
+              // }
               
             }
-            tracing::debug!("dispatch task end {:#?}", request_id);
+            // tracing::debug!("dispatch task end {:#?}", request_id);
           }
       } else {
         tracing::info!("JobRequest other {:#?}", event.kind());

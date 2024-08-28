@@ -1,4 +1,6 @@
 -- Your SQL goes here
+CREATE TYPE JOB_TYPE AS ENUM ('', 'tee', 'opml');
+
 CREATE TABLE "opml_answers"(
 	"req_id" VARCHAR NOT NULL PRIMARY KEY,
 	"node_id" VARCHAR NOT NULL,
@@ -24,6 +26,8 @@ CREATE TABLE "questions"(
 	"conversation_id" VARCHAR NOT NULL,
 	"model" VARCHAR NOT NULL,
 	"callback_url" VARCHAR NOT NULL,
+	"job_type" VARCHAR NOT NULL,
+	"status" VARCHAR NOT NULL,
 	"created_at" TIMESTAMP NOT NULL
 );
 
@@ -36,6 +40,7 @@ CREATE TABLE "answers"(
 	"attestation" VARCHAR NOT NULL,
 	"attest_signature" VARCHAR NOT NULL,
 	"elapsed" INT4 NOT NULL,
+	"job_type" VARCHAR NOT NULL,
 	"created_at" TIMESTAMP NOT NULL
 );
 

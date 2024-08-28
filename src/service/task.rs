@@ -41,19 +41,24 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
         // dispatch the question by call operator api
 
         if let Some(q) = dispatch_question {
+          let hash = &q.request_id;
+          let signature = server.sign(hash.as_ref());
             let op_req = OperatorReq {
                 request_id: q.request_id.clone(),
                 node_id: "".to_string(),
                 model: q.model.clone(),
                 prompt: q.message.clone(),
-                prompt_hash: "".to_string(),
-                signature: "".to_string(),
+                prompt_hash: hash.to_string(),
+                signature: signature.to_string(),
                 params: Params {
-                    temperature: 0.0,
+                    temperature: 1.0,
                     top_p: 0.1,
                     max_tokens: 1024,
                 },
+                r#type: "".to_string(),
             };
+
+            tracing::debug!("start dispatch task {:#?}", &q.request_id);
 
             let work_name = server
                 .tee_operator_collections
@@ -61,22 +66,23 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
                 .next();
                 // .unwrap()
                 // .clone();
-
               if let Some(work_name) = work_name  {
+                tracing::debug!("start dispatch task to {:#?}", work_name);
+
                 server.send_tee_inductive_task(work_name.clone(), op_req).await;  
               }
 
             // Send the request to the OPML server
 
-            let opml_request = OpmlRequest {
-                model: q.model.clone(),
-                prompt: q.message.clone(),
-                req_id: q.request_id.clone(),
-                callback: "".into(),
-            };
-            if let Err(e) = server.send_opml_request(opml_request).await {
-                tracing::error!("Failed to send OPML request: {:?}", e);
-            }
+            // let opml_request = OpmlRequest {
+            //     model: q.model.clone(),
+            //     prompt: q.message.clone(),
+            //     req_id: q.request_id.clone(),
+            //     callback: "".into(),
+            // };
+            // if let Err(e) = server.send_opml_request(opml_request).await {
+            //     tracing::error!("Failed to send OPML request: {:?}", e);
+            // }
 
             // dispatch the question by websocket
             let keys = server.worker_channels.keys();

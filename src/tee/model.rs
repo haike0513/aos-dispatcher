@@ -36,6 +36,7 @@ pub struct OperatorReq {
     pub prompt_hash: String,
     pub signature: String,
     pub params: Params,
+    pub r#type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +67,7 @@ pub struct Answer {
     pub attestation: String,
     pub attest_signature: String,
     pub elapsed: i32,
+    pub job_type: String,
     #[serde(serialize_with = "serialize_naive_datetime", deserialize_with = "deserialize_naive_datetime")]
     pub created_at: NaiveDateTime,
 }
@@ -118,6 +120,8 @@ pub struct Question {
     pub conversation_id: String,
     pub model: String,
     pub callback_url: String,
+    pub job_type: String,
+    pub status: String,
     #[serde(serialize_with = "serialize_naive_datetime")]
     pub created_at: NaiveDateTime,
 }
@@ -201,6 +205,8 @@ pub fn create_question(conn: &mut PgConnection, q_id: String, q_message: String,
         conversation_id: q_conversation_id,
         model: q_model,
         callback_url: q_callback_url,
+        status: "".into(),
+        job_type: "".into(),
         created_at: chrono::Local::now().naive_local(),
     };
 
@@ -222,6 +228,7 @@ pub fn create_tee_answer(conn: &mut PgConnection, req: &AnswerReq) -> Result<(),
         attestation: req.attestation.clone(),
         attest_signature: req.attest_signature.clone(),
         elapsed: req.elapsed as i32,
+        job_type: "".into(),
         created_at: chrono::Local::now().naive_local(),
     };
 

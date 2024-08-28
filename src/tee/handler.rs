@@ -59,6 +59,7 @@ pub async fn tee_question_handler(State(server): State<SharedState>, req: Json<Q
             prompt_hash: "".to_string(),
             signature: "".to_string(),
             params: req.params.clone(),
+            r#type: "".to_string(),
         };
 
 

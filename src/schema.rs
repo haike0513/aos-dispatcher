@@ -10,6 +10,7 @@ diesel::table! {
         attestation -> Varchar,
         attest_signature -> Varchar,
         elapsed -> Int4,
+        job_type -> Varchar,
         created_at -> Timestamp,
     }
 }
@@ -44,6 +45,8 @@ diesel::table! {
         conversation_id -> Varchar,
         model -> Varchar,
         callback_url -> Varchar,
+        job_type -> Varchar,
+        status -> Varchar,
         created_at -> Timestamp,
     }
 }

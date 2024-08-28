@@ -43,6 +43,7 @@ async fn main() {
     let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
         server.clone(),
         job_status_rx,
+        dispatch_task_tx.clone(),
     ));
 
 
