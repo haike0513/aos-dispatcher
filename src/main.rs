@@ -44,6 +44,8 @@ async fn main() {
 
     let (job_status_tx, job_status_rx) = mpsc::channel::<JobAnswer>(200);
 
+    let secret_key = config.secret_key;
+
     let mut server =
         SharedState::new(config, dispatch_task_tx.clone(), job_status_tx.clone()).await;
 
@@ -51,6 +53,7 @@ async fn main() {
         server.clone(),
         job_status_rx,
         dispatch_task_tx.clone(),
+        secret_key,
     ));
 
     let dispatch_task = tokio::spawn(service::task::dispatch_task(

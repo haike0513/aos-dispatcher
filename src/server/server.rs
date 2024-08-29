@@ -6,7 +6,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use rand::rngs::OsRng;
-use ed25519_dalek::{Signature, Signer, SigningKey};
+use ed25519_dalek::{SecretKey, Signature, Signer, SigningKey};
 use reqwest::Client;
 use dotenvy::dotenv;
 
@@ -43,8 +43,10 @@ impl Server {
     pub async fn new(config: Config, dispatch_task_tx: mpsc::Sender<u32>,
         job_status_tx: mpsc::Sender<JobAnswer>,
     ) -> Self {
-        let mut csprng = OsRng;
-        let sign_key = SigningKey::generate(&mut csprng);
+        // let mut csprng = OsRng;
+        // let sign_key = SigningKey::generate(&mut csprng);
+        let secret_key: SecretKey = config.secret_key;
+        let sign_key = SigningKey::from(secret_key);
         dotenv().ok();
 
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");

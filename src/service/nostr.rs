@@ -6,7 +6,7 @@ use nostr::nips::nip06::FromMnemonic;
 use nostr::nips::nip19::ToBech32;
 use nostr::{Keys, Result};
 
-use nostr_sdk::{Client, Event, EventBuilder, EventId, Filter, Kind, Metadata, RelayPoolNotification, SingleLetterTag, Tag, TagKind, Url};
+use nostr_sdk::{Client, Event, EventBuilder, EventId, Filter, Kind, Metadata, RelayPoolNotification, SecretKey, SingleLetterTag, Tag, TagKind, Url};
 use tokio::sync::mpsc;
 use tracing::instrument::WithSubscriber;
 
@@ -18,10 +18,13 @@ pub mod model;
 pub async fn subscription_service(
   server: SharedState,
   mut job_status_rx: mpsc::Receiver<JobAnswer>,
-  mut dispatch_task_tx: mpsc::Sender<u32>
-
+  mut dispatch_task_tx: mpsc::Sender<u32>,
+  key: ed25519_dalek::SecretKey,
 ){
-  let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
+  // let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
+  let secret_key = SecretKey::from_slice(key.as_ref()).unwrap();
+  let keys = Keys::new(secret_key);
+
   let bech32_address = keys.public_key().to_bech32().unwrap();
 
   let client = Client::new(&keys);
