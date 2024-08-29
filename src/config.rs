@@ -1,3 +1,32 @@
+use serde::Deserialize;
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct CustomConfig {
+    pub log_level: Option<String>,
+    pub address: Option<String>,
+    pub port: Option<u16>,
+}
+impl CustomConfig {
+    pub async fn from_toml() -> Self {
+        let f = tokio::fs::read_to_string("dispatcher.toml").await;
+        let custom = match f {
+            Ok(s) => {
+                let custom_config = match toml::from_str::<CustomConfig>(s.as_str()) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        tracing::error!("parse dispatcher.toml fail");
+                        CustomConfig::default()
+                    },
+                };
+                custom_config
+            },
+            Err(_) => {
+                tracing::error!("parse dispatcher.toml fail");
+                CustomConfig::default()
+            },
+        };
+        custom
+    }
+}
 #[derive(Debug)]
 pub struct Config {
     pub server: ServerConfig,
@@ -8,6 +37,7 @@ pub struct Config {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    // pub log_level: String,
 }
 
 #[derive(Debug)]
@@ -27,4 +57,12 @@ impl Config {
             },
         }
     }
+
+    pub  fn merge(&mut self, custom: &CustomConfig) -> Self {
+        let mut config = Self::new();
+        config.server.host = custom.address.clone().unwrap_or(config.server.host);
+        config.server.port = custom.port.unwrap_or(config.server.port);
+        config
+    }
+
 }
