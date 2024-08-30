@@ -6,13 +6,13 @@ use nostr::nips::nip06::FromMnemonic;
 use nostr::nips::nip19::ToBech32;
 use nostr::{Keys, Result};
 
-use nostr_sdk::{Client, Event, EventBuilder, EventId, Filter, Kind, Metadata, RelayPoolNotification, SecretKey, SingleLetterTag, Tag, TagKind, Url};
+use nostr_sdk::{Client, Event, EventBuilder, EventId, Filter, Kind, Metadata, RelayPoolNotification, SecretKey, SingleLetterTag, Tag, TagKind, Timestamp, Url};
 use tokio::sync::mpsc;
 use tracing::instrument::WithSubscriber;
 
 use crate::opml::model::{create_opml_question, OpmlRequest};
 use crate::server::server::SharedState;
-use crate::tee::model::{create_question, OperatorReq};
+use crate::tee::model::{create_question, query_latest_question, OperatorReq};
 pub mod util;
 pub mod model;
 pub async fn subscription_service(
@@ -20,6 +20,7 @@ pub async fn subscription_service(
   mut job_status_rx: mpsc::Receiver<JobAnswer>,
   mut dispatch_task_tx: mpsc::Sender<u32>,
   key: ed25519_dalek::SecretKey,
+  relay_url: String,
 ){
   // let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
   let secret_key = SecretKey::from_slice(key.as_ref()).unwrap();
@@ -29,9 +30,9 @@ pub async fn subscription_service(
 
   let client = Client::new(&keys);
   // let client = Client::default();
-  client.add_relay(DEFAULT_RELAY).await.unwrap();
+  client.add_relay(&relay_url).await.unwrap();
   client.connect().await;
-  tracing::info!("connect relay {:#?} with {:#?}", DEFAULT_RELAY, bech32_address);
+  tracing::info!("connect relay {:#?} with {:#?}", &relay_url, bech32_address);
   let metadata = Metadata::new()
   .name("aos-dispatcher")
   .display_name("Aos Dispatcher")
@@ -71,12 +72,28 @@ pub async fn subscription_service(
     }
   });
 
-  let subscription = Filter::new()
+  let mut subscription = Filter::new()
   // .pubkey(keys.public_key())
   .kinds([Kind::JobRequest(5050)])
+  // .since(Timestamp::now())
   // .kind(Kind::Custom(5050))
   // .limit(10)
   ;
+
+  {
+    let mut server = server.0.write().await;
+    let mut conn = server.pg.get().expect("Failed to get a connection from pool");
+
+    if let Ok(latest_question) = query_latest_question(&mut conn) {
+      let time = latest_question.created_at.and_utc().timestamp();
+      subscription = subscription.since(Timestamp::from(time as u64));
+    } else {
+      // subscription.since(Timestamp::now())
+         
+    }
+  }
+
+
 
   client.subscribe(vec![subscription], None).await.unwrap();
   tracing::info!("Subscription ID: [auto-closing] start");

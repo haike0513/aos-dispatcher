@@ -8,6 +8,7 @@ pub struct CustomConfig {
     pub address: Option<String>,
     pub port: Option<u16>,
     pub mnemonic: Option<String>,
+    pub default_relay: Option<String>,
 }
 impl CustomConfig {
     pub async fn from_toml() -> Self {

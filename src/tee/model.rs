@@ -193,6 +193,11 @@ pub fn list_questions(conn: &mut PgConnection) -> Result<Vec<Question>, diesel::
     questions_table.load::<Question>(conn)
 }
 
+pub fn query_latest_question(conn: &mut PgConnection) -> Result<Question, diesel::result::Error>{
+    let a = questions::table.order_by(questions::created_at.desc()).first(conn);
+    a
+}
+
 pub fn list_answers(conn: &mut PgConnection) -> Result<Vec<Answer>, diesel::result::Error> {
     answers.load::<Answer>(conn)
 }

@@ -54,6 +54,7 @@ async fn main() {
         job_status_rx,
         dispatch_task_tx.clone(),
         secret_key,
+        custom_config.default_relay.unwrap_or("ws://localhost:8080".into())
     ));
 
     let dispatch_task = tokio::spawn(service::task::dispatch_task(
