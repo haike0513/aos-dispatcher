@@ -17,6 +17,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 use aos_dispatcher::service;
+use aos_dispatcher::job;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
@@ -49,18 +50,18 @@ async fn main() {
     let mut server =
         SharedState::new(config, dispatch_task_tx.clone(), job_status_tx.clone()).await;
 
-    let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
-        server.clone(),
-        job_status_rx,
-        dispatch_task_tx.clone(),
-        secret_key,
-        custom_config.default_relay.unwrap_or("ws://localhost:8080".into())
-    ));
+    // let nostr_sub_task = tokio::spawn(aos_dispatcher::service::nostr::subscription_service(
+    //     server.clone(),
+    //     job_status_rx,
+    //     dispatch_task_tx.clone(),
+    //     secret_key,
+    //     custom_config.default_relay.unwrap_or("ws://localhost:8080".into())
+    // ));
 
-    let dispatch_task = tokio::spawn(service::task::dispatch_task(
-        server.clone(),
-        dispatch_task_rx,
-    ));
+    // let dispatch_task = tokio::spawn(service::task::dispatch_task(
+    //     server.clone(),
+    //     dispatch_task_rx,
+    // ));
 
     // build our application with a single route
     let app = Router::new()
@@ -69,6 +70,8 @@ async fn main() {
         .route("/register_worker", post(register_worker))
         .route("/receive_heart_beat", post(receive_heart_beat))
         .route("/api/question", post(tee_question_handler))
+        .route("/api/job/submit", post(job::handler::submit_job))
+        .route("/api/job/result", post(job::handler::query_job_result))
         .route("/api/tee_callback", post(tee_callback))
         .route("/api/opml_question", post(opml_question_handler))
         .route("/api/opml_callback", post(opml_callback))
@@ -107,5 +110,9 @@ async fn main() {
         }
     });
 
-    let _ = tokio::join!(nostr_sub_task, server_task, dispatch_task,);
+    let _ = tokio::join!(
+        // nostr_sub_task, 
+        server_task, 
+        // dispatch_task,
+    );
 }

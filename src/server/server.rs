@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::extract::ws::WebSocket;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
+use nostr::nips::nip06::FromMnemonic;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use rand::rngs::OsRng;
 use ed25519_dalek::{SecretKey, Signature, Signer, SigningKey};
@@ -18,6 +19,7 @@ use crate::opml::model::{OpmlAnswer, OpmlRequest};
 #[derive(Debug, Clone)]
 pub struct Server {
     pub sign_key: SigningKey,
+    pub nostr_keys: nostr::Keys,
     pub tee_operator_collections: HashMap<String, Operator>,
     pub pg: Pool<ConnectionManager<PgConnection>>,
     pub tee_channels: HashMap<String, mpsc::Sender<AnswerReq>>,
@@ -47,6 +49,7 @@ impl Server {
         // let sign_key = SigningKey::generate(&mut csprng);
         let secret_key: SecretKey = config.secret_key;
         let sign_key = SigningKey::from(secret_key);
+        let nostr_keys = nostr::Keys::new(nostr::SecretKey::from_slice(&secret_key).unwrap());
         dotenv().ok();
 
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -55,6 +58,7 @@ impl Server {
 
         Self {
             sign_key,
+            nostr_keys,
             tee_operator_collections: Default::default(),
             pg,
             tee_channels: Default::default(),
