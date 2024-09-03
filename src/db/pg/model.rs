@@ -66,3 +66,20 @@ pub struct Answer {
     #[serde(serialize_with = "serialize_naive_datetime", deserialize_with = "deserialize_naive_datetime")]
     pub created_at: NaiveDateTime,
 }
+
+
+
+#[derive(Queryable, Selectable, Insertable, Serialize)]
+#[diesel(table_name = crate::schema::operator)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Operator {
+    pub id: String,
+    pub name: String,
+    pub address: String,
+    pub start: String,
+    pub end: String,
+    pub operator_type: String,
+    pub status: String,
+    #[serde(serialize_with = "serialize_naive_datetime")]
+    pub created_at: NaiveDateTime,
+}

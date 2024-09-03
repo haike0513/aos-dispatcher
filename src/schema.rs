@@ -16,6 +16,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    operator (id) {
+        id -> Varchar,
+        name -> Varchar,
+        address -> Varchar,
+        start -> Varchar,
+        end -> Varchar,
+        operator_type -> Varchar,
+        status -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     opml_answers (req_id) {
         req_id -> Varchar,
         node_id -> Varchar,
@@ -53,6 +66,7 @@ diesel::table! {
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
+    operator,
     opml_answers,
     opml_questions,
     questions,

@@ -44,3 +44,14 @@ CREATE TABLE "answers"(
 	"created_at" TIMESTAMP NOT NULL
 );
 
+
+CREATE TABLE "operator"(
+	"id" VARCHAR NOT NULL PRIMARY KEY,
+	"name" VARCHAR NOT NULL,
+	"address" VARCHAR NOT NULL,
+	"start" VARCHAR NOT NULL,
+	"end" VARCHAR NOT NULL,
+	"operator_type" VARCHAR NOT NULL,
+	"status" VARCHAR NOT NULL,
+	"created_at" TIMESTAMP NOT NULL
+);

@@ -1,10 +1,13 @@
 use chrono::NaiveDateTime;
+use diesel::upsert::excluded;
 use serde::Deserialize;
 use diesel::prelude::*;
 
 use crate::schema::answers;
 use crate::db::pg::model::{Question, Answer};
 use crate::schema::answers::dsl::{request_id as answer_request_id};
+
+use super::model::Operator;
 
 
 pub fn serialize_naive_datetime<S>(
@@ -46,3 +49,21 @@ pub fn get_answer_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Option<An
       .optional()
 }
 
+pub fn sync_operators_info(conn: &mut PgConnection, operators: &Vec<Operator>) -> Result<Vec<Operator>, diesel::result::Error> {
+
+
+  diesel::insert_into(crate::schema::operator::table)
+      .values(operators)
+      // .on_conflict(target)
+      .on_conflict(crate::schema::operator::id)
+      .do_update()
+      .set(
+        (
+          crate::schema::operator::start.eq(excluded(crate::schema::operator::start)),
+          crate::schema::operator::end.eq(excluded(crate::schema::operator::end)),
+        )
+      )
+      .returning(Operator::as_returning())
+      .get_results(conn)
+      // .expect("Error saving new question")
+}
