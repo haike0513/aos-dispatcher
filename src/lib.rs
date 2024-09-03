@@ -11,3 +11,4 @@ pub mod tee;
 pub mod ws;
 pub mod service;
 pub mod job;
+pub mod operator;

@@ -17,7 +17,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 use aos_dispatcher::service;
-use aos_dispatcher::job;
+use aos_dispatcher::{job, operator};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
@@ -70,6 +70,7 @@ async fn main() {
         .route("/register_worker", post(register_worker))
         .route("/receive_heart_beat", post(receive_heart_beat))
         .route("/api/question", post(tee_question_handler))
+        .route("/api/operator/register", post(operator::handler::register))
         .route("/api/job/submit", post(job::handler::submit_job))
         .route("/api/job/result", post(job::handler::query_job_result))
         .route("/api/tee_callback", post(tee_callback))

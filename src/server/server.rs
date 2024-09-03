@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
-use axum::extract::ws::WebSocket;
+use axum::extract::ws::{Message, WebSocket};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use nostr::nips::nip06::FromMnemonic;
@@ -24,7 +24,7 @@ pub struct Server {
     pub pg: Pool<ConnectionManager<PgConnection>>,
     pub tee_channels: HashMap<String, mpsc::Sender<AnswerReq>>,
     pub opml_channels: HashMap<String, mpsc::Sender<OpmlAnswer>>,
-    pub worker_channels: HashMap<String, mpsc::Sender<String>>,
+    pub worker_channels: HashMap<String, mpsc::Sender<Message>>,
     pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
     pub job_status_tx: Option<mpsc::Sender<JobAnswer>>,
 }

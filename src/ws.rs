@@ -8,6 +8,7 @@ use axum::{
 
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::CloseFrame;
+use msg::WsSendMsg;
 use tokio::sync::mpsc;
 // use futures::{sink::SinkExt, stream::StreamExt};
 use std::{borrow::Cow, net::ToSocketAddrs, sync::Arc};
@@ -16,6 +17,8 @@ use std::{net::SocketAddr, path::PathBuf};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{server::server::SharedState, service::task::DispatchTaskState};
+
+pub mod msg;
 
 pub async fn handler(
   ws: WebSocketUpgrade,
@@ -27,7 +30,7 @@ pub async fn handler(
 
   // send client channel
 
-  let (tx, mut rx) = mpsc::channel::<String>(20_000);
+  let (tx, mut rx) = mpsc::channel::<Message>(20_000);
   let dispatch_tx;
 
 
@@ -45,7 +48,7 @@ pub async fn handler(
 async fn handle_socket(
   mut socket: WebSocket, 
   who: SocketAddr,
-  mut rx: mpsc::Receiver<String>,
+  mut rx: mpsc::Receiver<Message>,
   dispatch_tx:mpsc::Sender<u32>,
 ) {
   dispatch_tx.send(2).await.unwrap();
@@ -55,27 +58,46 @@ async fn handle_socket(
         // client send to dispatcher
         Some(msg) = socket.recv() => {
             let msg = if let Ok(msg) = msg {
+              match &msg {
+                  Message::Text(t) => {
+                    tracing::debug!("Text {:#?}", t);
+                  },
+                  Message::Binary(b) => {
+                    tracing::debug!("Binary {:#?}", b);
+                  },
+                  Message::Ping(p) => {
+                    tracing::debug!("Ping {:#?}", p);
+
+                  },
+                  Message::Pong(p) => {
+                    tracing::debug!("Pong {:#?}", p);
+                  },
+                  Message::Close(c) => {
+                    tracing::debug!("close {:#?}", c);
+                    break;
+                  },
+              };
                 msg
             } else {
                 // client disconnected
-      
-                return;
+                break;
             };
       
             if socket.send(msg).await.is_err() {
                 // client disconnected
-                return;
+                break;
             }
         },
         Some(msg) = rx.recv() => {
           tracing::debug!("send message to client");
-          if socket.send(Message::Text(msg.to_string())).await.is_err() {
+          if socket.send(msg).await.is_err() {
                 // client disconnected
                 return;
             }
-
         }
 
       }
   }
+  tracing::info!("{} ws disconnect", who);
+
 }

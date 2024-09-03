@@ -8,7 +8,7 @@ use crate::{
     opml::model::OpmlRequest,
     server::server::SharedState,
     service::nostr::{model::JobAnswer, util::query_question},
-    tee::model::{OperatorReq, Params},
+    tee::model::{OperatorReq, Params}, ws::msg::WsSendMsg,
 };
 
 #[derive(Debug, Clone)]
@@ -90,7 +90,7 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
                 let worker_tx = server.worker_channels.get(k);
                 if let Some(tx) = worker_tx {
                     if let Some(q) = dispatch_question {
-                        tx.send(q.message.clone()).await.unwrap();
+                        tx.send(WsSendMsg::Ping.into()).await.unwrap();
                         tracing::debug!("start dispatch task to {}", k);
 
                         // TODO: Mock

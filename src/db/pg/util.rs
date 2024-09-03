@@ -3,7 +3,7 @@ use serde::Deserialize;
 use diesel::prelude::*;
 
 use crate::schema::answers;
-use crate::{db::pg::model::Question, tee::model::Answer};
+use crate::db::pg::model::{Question, Answer};
 use crate::schema::answers::dsl::{request_id as answer_request_id};
 
 

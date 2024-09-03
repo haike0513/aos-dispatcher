@@ -49,3 +49,20 @@ pub struct Question {
     #[serde(serialize_with = "serialize_naive_datetime")]
     pub created_at: NaiveDateTime,
 }
+
+#[derive(Queryable, Selectable, Insertable, Serialize, Deserialize, Debug)]
+#[diesel(table_name = crate::schema::answers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Answer {
+    pub request_id: String,
+    pub node_id: String,
+    pub model: String,
+    pub prompt: String,
+    pub answer: String,
+    pub attestation: String,
+    pub attest_signature: String,
+    pub elapsed: i32,
+    pub job_type: String,
+    #[serde(serialize_with = "serialize_naive_datetime", deserialize_with = "deserialize_naive_datetime")]
+    pub created_at: NaiveDateTime,
+}
