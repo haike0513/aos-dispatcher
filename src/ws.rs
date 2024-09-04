@@ -8,7 +8,7 @@ use axum::{
 
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::CloseFrame;
-use msg::WsSendMsg;
+use msg::{WsMethodMsg, WsResultMsg, WsSendMsg};
 use tokio::sync::mpsc;
 // use futures::{sink::SinkExt, stream::StreamExt};
 use std::{borrow::Cow, net::ToSocketAddrs, sync::Arc};
@@ -19,6 +19,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::{server::server::SharedState, service::task::DispatchTaskState};
 
 pub mod msg;
+pub mod util;
 
 pub async fn handler(
   ws: WebSocketUpgrade,
@@ -42,7 +43,7 @@ pub async fn handler(
 
   
   ws.on_upgrade(move |socket| {
-    handle_socket(socket, addr, rx, dispatch_tx)
+    handle_socket(socket, addr, rx, dispatch_tx, server.clone())
   })
 }
 async fn handle_socket(
@@ -50,6 +51,7 @@ async fn handle_socket(
   who: SocketAddr,
   mut rx: mpsc::Receiver<Message>,
   dispatch_tx:mpsc::Sender<u32>,
+  server: SharedState,
 ) {
   dispatch_tx.send(2).await.unwrap();
   tracing::info!("{} ws connect", who);
@@ -57,10 +59,50 @@ async fn handle_socket(
       tokio::select!{
         // client send to dispatcher
         Some(msg) = socket.recv() => {
-            let msg = if let Ok(msg) = msg {
+            if let Ok(msg) = msg {
               match &msg {
                   Message::Text(t) => {
-                    tracing::debug!("Text {:#?}", t);
+                    let command = util::convert_to_msg(t);
+                    if let Ok(method_msg) = command {
+                      tracing::debug!("Text {:#?}", method_msg);
+
+                       if &method_msg.method == &Some("connect".into()) {
+                        let result = WsResultMsg {
+                          id: method_msg.id.clone(),
+                          result: "".into(),
+                          address: "".into(),
+                          hash: "".into(),
+                          signature: "".into(),
+                        };
+                        tracing::debug!("method {:#?}", method_msg);
+                        let _ = socket.send(result.into()).await.is_err();
+                       }
+
+                       if &method_msg.method == &Some("job_result".into()) {
+                        let result = WsResultMsg {
+                          id: method_msg.id.clone(),
+                          result: "".into(),
+                          address: "".into(),
+                          hash: "".into(),
+                          signature: "".into(),
+                        };
+                        tracing::debug!("method {:#?}", method_msg);
+                        let _ = socket.send(result.into()).await.is_err();
+                       }
+
+                       if let &Some(_) = &method_msg.result  {
+                        let result = WsResultMsg {
+                          id: method_msg.id.clone(),
+                          result: "".into(),
+                          address: "".into(),
+                          hash: "".into(),
+                          signature: "".into(),
+                        };
+                        tracing::debug!("result {:#?}", method_msg);
+
+                       }
+                      
+                    }
                   },
                   Message::Binary(b) => {
                     tracing::debug!("Binary {:#?}", b);
@@ -77,16 +119,12 @@ async fn handle_socket(
                     break;
                   },
               };
-                msg
+              // msg
+              // Message::Pong(vec![])
             } else {
                 // client disconnected
                 break;
             };
-      
-            if socket.send(msg).await.is_err() {
-                // client disconnected
-                break;
-            }
         },
         Some(msg) = rx.recv() => {
           tracing::debug!("send message to client");
