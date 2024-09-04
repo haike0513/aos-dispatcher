@@ -42,3 +42,13 @@ impl  Into<Message> for WsResultMsg {
     Message::Text(json)
   }
 }
+
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectParams {
+  pub operator: String,
+  pub hash: String,
+  pub signature: String,
+}

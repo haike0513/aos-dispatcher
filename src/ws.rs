@@ -9,7 +9,9 @@ use axum::{
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::CloseFrame;
 use msg::{WsMethodMsg, WsResultMsg, WsSendMsg};
+use serde_json::json;
 use tokio::sync::mpsc;
+use util::connect_to_dispatcher;
 // use futures::{sink::SinkExt, stream::StreamExt};
 use std::{borrow::Cow, net::ToSocketAddrs, sync::Arc};
 use std::ops::ControlFlow;
@@ -37,18 +39,18 @@ pub async fn handler(
 
   {
     let mut server = server.0.write().await;
-    server.worker_channels.insert(addr.to_string(), tx);
+    server.worker_channels.insert(addr.to_string(), tx.clone());
     dispatch_tx = server.dispatch_task_tx.clone().unwrap();
   }
 
-  
   ws.on_upgrade(move |socket| {
-    handle_socket(socket, addr, rx, dispatch_tx, server.clone())
+    handle_socket(socket, addr, tx, rx, dispatch_tx, server.clone())
   })
 }
 async fn handle_socket(
   mut socket: WebSocket, 
   who: SocketAddr,
+  mut tx: mpsc::Sender<Message>,
   mut rx: mpsc::Receiver<Message>,
   dispatch_tx:mpsc::Sender<u32>,
   server: SharedState,
@@ -67,14 +69,33 @@ async fn handle_socket(
                       tracing::debug!("Text {:#?}", method_msg);
 
                        if &method_msg.method == &Some("connect".into()) {
-                        let result = WsResultMsg {
-                          id: method_msg.id.clone(),
-                          result: "".into(),
-                          address: "".into(),
-                          hash: "".into(),
-                          signature: "".into(),
-                        };
-                        tracing::debug!("method {:#?}", method_msg);
+                        let result: WsResultMsg;
+                        if let Ok(_) = connect_to_dispatcher(&method_msg, tx.clone(), server.clone()).await {
+                          result = WsResultMsg {
+                            id: method_msg.id.clone(),
+                            result: json!({
+                              "code": 200,
+                              "message": "success"
+                            }).into(),
+                            address: "".into(),
+                            hash: "".into(),
+                            signature: "".into(),
+                          };
+                          tracing::debug!("method {:#?}", method_msg);
+
+                        } else {
+                          result = WsResultMsg {
+                            id: method_msg.id.clone(),
+                            result: json!({
+                              "code": 500,
+                              "message": "error"
+                            }).into(),
+                            address: "".into(),
+                            hash: "".into(),
+                            signature: "".into(),
+                          };
+
+                        }
                         let _ = socket.send(result.into()).await.is_err();
                        }
 

@@ -25,6 +25,7 @@ pub struct Server {
     pub tee_channels: HashMap<String, mpsc::Sender<AnswerReq>>,
     pub opml_channels: HashMap<String, mpsc::Sender<OpmlAnswer>>,
     pub worker_channels: HashMap<String, mpsc::Sender<Message>>,
+    pub operator_channels: HashMap<String, mpsc::Sender<Message>>,
     pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
     pub job_status_tx: Option<mpsc::Sender<JobAnswer>>,
 }
@@ -64,6 +65,7 @@ impl Server {
             tee_channels: Default::default(),
             opml_channels: Default::default(),
             worker_channels: Default::default(),
+            operator_channels: Default::default(),
             dispatch_task_tx: Some(dispatch_task_tx),
             job_status_tx: Some(job_status_tx),
         }
