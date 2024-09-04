@@ -11,7 +11,7 @@ use axum::extract::ws::CloseFrame;
 use msg::{WsMethodMsg, WsResultMsg, WsSendMsg};
 use serde_json::json;
 use tokio::sync::mpsc;
-use util::connect_to_dispatcher;
+use util::{connect_to_dispatcher, receive_job_result};
 // use futures::{sink::SinkExt, stream::StreamExt};
 use std::{borrow::Cow, net::ToSocketAddrs, sync::Arc};
 use std::ops::ControlFlow;
@@ -99,14 +99,33 @@ async fn handle_socket(
                        }
 
                        if &method_msg.method == &Some("job_result".into()) {
-                        let result = WsResultMsg {
-                          id: method_msg.id.clone(),
-                          result: "".into(),
-                          address: "".into(),
-                          hash: "".into(),
-                          signature: "".into(),
-                        };
-                        tracing::debug!("method {:#?}", method_msg);
+                        let result: WsResultMsg;
+                        if let Ok(_) = receive_job_result(&method_msg, tx.clone(), server.clone()).await {
+                          result = WsResultMsg {
+                            id: method_msg.id.clone(),
+                            result: json!({
+                              "code": 200,
+                              "message": "success"
+                            }).into(),
+                            address: "".into(),
+                            hash: "".into(),
+                            signature: "".into(),
+                          };
+                          tracing::debug!("method {:#?}", method_msg);
+
+                        } else {
+                          result = WsResultMsg {
+                            id: method_msg.id.clone(),
+                            result: json!({
+                              "code": 500,
+                              "message": "error"
+                            }).into(),
+                            address: "".into(),
+                            hash: "".into(),
+                            signature: "".into(),
+                          };
+
+                        }
                         let _ = socket.send(result.into()).await.is_err();
                        }
 

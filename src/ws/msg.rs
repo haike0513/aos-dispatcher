@@ -59,3 +59,14 @@ pub struct ConnectParams {
   pub hash: String,
   pub signature: String,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JobResultParams {
+  pub id: String,
+  pub result: String,
+  pub operator: String,
+  pub hash: String,
+  pub signature: String,
+}
+

@@ -42,6 +42,14 @@ pub fn create_question(conn: &mut PgConnection, q: &Question) -> Result<Question
       // .expect("Error saving new question")
 }
 
+pub fn create_job_answer(conn: &mut PgConnection, ans: &Answer) -> Result<(), diesel::result::Error> {
+  diesel::insert_into(crate::schema::answers::table)
+      .values(ans)
+      .execute(conn)?;
+
+  Ok(())
+}
+
 pub fn get_answer_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Option<Answer>, diesel::result::Error> {
   answers::table
       .filter(answer_request_id.eq(q_id))
