@@ -25,11 +25,16 @@ use super::model::{SubmitJob, SubmitJobResp};
 pub async fn submit_job(State(server): State<SharedState>, Json(req): Json<SubmitJob>) -> Json<serde_json::Value> {
   tracing::debug!("submit job");
   let mut server = server.0.write().await;
+  let dispatch_tx = server.dispatch_task_tx.clone().unwrap();
   let keys = &server.nostr_keys;
   let job = JobTask::create_with(&req, keys);
   let question = job.into();
   let mut conn = server.pg.get().expect("Failed to get a connection from pool");
   let q = pg::util::create_question(&mut conn, &question).expect("Error saving new question");
+
+  // dispatch task
+  dispatch_tx.send(2).await.unwrap();
+
   Json(json!({
     "code": 200,
     "result": q.request_id,

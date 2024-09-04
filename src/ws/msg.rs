@@ -13,6 +13,13 @@ pub struct WsMethodMsg {
   pub signature: String,
 }
 
+impl  Into<Message> for WsMethodMsg {
+  fn into(self) -> Message {
+    let json =  serde_json::to_string(&self).unwrap();
+    Message::Text(json)
+  }
+}
+
  pub enum WsSendMsg {
   Ping
  }

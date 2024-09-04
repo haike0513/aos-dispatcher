@@ -2,13 +2,14 @@ use std::{str::FromStr, sync::Arc};
 
 use axum::extract::FromRef;
 use nostr_sdk::EventId;
+use serde_json::json;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
     opml::model::OpmlRequest,
     server::server::SharedState,
     service::nostr::{model::JobAnswer, util::query_question},
-    tee::model::{OperatorReq, Params}, ws::msg::WsSendMsg,
+    tee::model::{OperatorReq, Params}, ws::msg::{WsMethodMsg, WsResultMsg, WsSendMsg},
 };
 
 #[derive(Debug, Clone)]
@@ -43,34 +44,36 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
         if let Some(q) = dispatch_question {
           let hash = &q.request_id;
           let signature = server.sign(hash.as_ref());
-            let op_req = OperatorReq {
-                request_id: q.request_id.clone(),
-                node_id: "".to_string(),
-                model: q.model.clone(),
-                prompt: q.message.clone(),
-                prompt_hash: hash.to_string(),
-                signature: signature.to_string(),
-                params: Params {
-                    temperature: 1.0,
-                    top_p: 0.1,
-                    max_tokens: 1024,
-                },
-                r#type: "".to_string(),
-            };
+            // let op_req = OperatorReq {
+            //     request_id: q.request_id.clone(),
+            //     node_id: "".to_string(),
+            //     model: q.model.clone(),
+            //     prompt: q.message.clone(),
+            //     prompt_hash: hash.to_string(),
+            //     signature: signature.to_string(),
+            //     params: Params {
+            //         temperature: 1.0,
+            //         top_p: 0.1,
+            //         max_tokens: 1024,
+            //     },
+            //     r#type: "".to_string(),
+            // };
 
             tracing::debug!("start dispatch task {:#?}", &q.request_id);
 
-            let work_name = server
-                .tee_operator_collections
-                .keys()
-                .next();
-                // .unwrap()
-                // .clone();
-              if let Some(work_name) = work_name  {
-                tracing::debug!("start dispatch task to {:#?}", work_name);
+            // send tee
 
-                server.send_tee_inductive_task(work_name.clone(), op_req).await;  
-              }
+            // let work_name = server
+            //     .tee_operator_collections
+            //     .keys()
+            //     .next();
+            //     // .unwrap()
+            //     // .clone();
+            //   if let Some(work_name) = work_name  {
+            //     tracing::debug!("start dispatch task to {:#?}", work_name);
+
+            //     server.send_tee_inductive_task(work_name.clone(), op_req).await;  
+            //   }
 
             // Send the request to the OPML server
 
@@ -85,30 +88,41 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
             // }
 
             // dispatch the question by websocket
-            let keys = server.worker_channels.keys();
-            if let Some(k) = keys.into_iter().next() {
-                let worker_tx = server.worker_channels.get(k);
-                if let Some(tx) = worker_tx {
-                    if let Some(q) = dispatch_question {
-                        tx.send(WsSendMsg::Ping.into()).await.unwrap();
-                        tracing::debug!("start dispatch task to {}", k);
+            let operators = server.operator_channels.iter();
 
-                        // TODO: Mock
-                        // tracing::debug!("mock receive job status");
-                        // let job_status_tx = server.job_status_tx.clone().unwrap();
-                        // let job_answer = JobAnswer {
-                        //     event_id: EventId::from_str(&q.message_id).unwrap(),
-                        // };
-                        // tracing::debug!("start send job status {:#?}", job_answer);
-                        // job_status_tx.send(job_answer).await.unwrap();
-                    } else {
-                        tracing::debug!("There is no question wait to dispatch");
-                    }
-                } else {
-                    tracing::info!("start dispatch task error {} for no worker connect", i);
+            for (k, tx) in operators {
+                tracing::debug!("dispatcher task to {}", k);
+                if let Some(q) = dispatch_question {
+                    tracing::debug!("dispatcher task  question to {}", k);
+
+                    let uuid = uuid::Uuid::new_v4();
+                    let id = uuid.to_string();
+                    let msg = WsMethodMsg {
+                        id,
+                        address: "".into(),
+                        hash: "".into(),
+                        signature: "".into(),
+                        method: Some("dispatch_job".into()),
+                        params: json!([
+                            {
+                                "user": "", 
+                                "seed": "",
+                                "signature": "",
+                                "job": {
+                                        "id": "",
+                                        "model": "",
+                                        "promote": "",
+                                        "params": {
+                                            "max_tokens": 1024
+                                        }
+                                    }
+                            }
+                        ]),
+                        result: None,
+                    };
+                    tx.send(msg.into()).await.unwrap();
                 }
-            } else {
-                tracing::info!("start dispatch task error {} for no worker connect", i);
+                
             }
         }
     }

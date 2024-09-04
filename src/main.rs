@@ -58,10 +58,10 @@ async fn main() {
     //     custom_config.default_relay.unwrap_or("ws://localhost:8080".into())
     // ));
 
-    // let dispatch_task = tokio::spawn(service::task::dispatch_task(
-    //     server.clone(),
-    //     dispatch_task_rx,
-    // ));
+    let dispatch_task = tokio::spawn(service::task::dispatch_task(
+        server.clone(),
+        dispatch_task_rx,
+    ));
 
     // build our application with a single route
     let app = Router::new()
@@ -100,13 +100,13 @@ async fn main() {
                 )
                 .await {
                     Ok(_) => {},
-                    Err(_) => {
-                        tracing::error!("start server error");
+                    Err(e) => {
+                        tracing::error!("start server error: {}", e);
                     },
                 }
             }
-            Err(_) => {
-                tracing::error!("start server error");
+            Err(e) => {
+                tracing::error!("start server error: {}", e);
             }
         }
     });
@@ -114,6 +114,6 @@ async fn main() {
     let _ = tokio::join!(
         // nostr_sub_task, 
         server_task, 
-        // dispatch_task,
+        dispatch_task,
     );
 }

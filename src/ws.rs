@@ -55,7 +55,6 @@ async fn handle_socket(
   dispatch_tx:mpsc::Sender<u32>,
   server: SharedState,
 ) {
-  dispatch_tx.send(2).await.unwrap();
   tracing::info!("{} ws connect", who);
   loop {
       tokio::select!{
