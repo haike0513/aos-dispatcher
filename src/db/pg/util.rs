@@ -3,7 +3,7 @@ use diesel::upsert::excluded;
 use serde::Deserialize;
 use diesel::prelude::*;
 
-use crate::schema::{answers, job_result};
+use crate::schema::{answers, job_request, job_result};
 use crate::db::pg::model::{Question, Answer};
 use crate::schema::answers::dsl::{request_id as answer_request_id};
 
@@ -96,4 +96,13 @@ pub fn get_job_result_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Optio
       .filter(job_result::id.eq(q_id))
       .first::<JobResult>(conn)
       .optional()
+}
+
+
+pub fn query_new_job_request(conn: &mut PgConnection) -> Result<Vec<JobRequest>, diesel::result::Error> {
+  let r = job_request::table
+    .select(JobRequest::as_select())
+    // .as_query()
+    .load(conn);
+  r
 }

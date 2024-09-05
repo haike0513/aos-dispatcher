@@ -6,10 +6,7 @@ use serde_json::json;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
-    opml::model::OpmlRequest,
-    server::server::SharedState,
-    service::nostr::{model::JobAnswer, util::query_question},
-    tee::model::{OperatorReq, Params}, ws::msg::{WsMethodMsg, WsResultMsg, WsSendMsg},
+    db::pg::util::query_new_job_request, opml::model::OpmlRequest, server::server::SharedState, service::nostr::{model::JobAnswer, util::query_question}, tee::model::{OperatorReq, Params}, ws::msg::{WsMethodMsg, WsResultMsg, WsSendMsg}
 };
 
 #[derive(Debug, Clone)]
@@ -36,13 +33,13 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
             .pg
             .get()
             .expect("Failed to get a connection from pool");
-        let questions = query_question(&mut conn).unwrap_or_default();
+        let questions = query_new_job_request(&mut conn).unwrap_or_default();
         let dispatch_question = questions.iter().next();
 
         // dispatch the question by call operator api
 
         if let Some(q) = dispatch_question {
-          let hash = &q.request_id;
+          let hash = &q.id;
           let signature = server.sign(hash.as_ref());
             // let op_req = OperatorReq {
             //     request_id: q.request_id.clone(),
@@ -59,7 +56,7 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
             //     r#type: "".to_string(),
             // };
 
-            tracing::debug!("start dispatch task {:#?}", &q.request_id);
+            tracing::debug!("start dispatch task {:#?}", &q.id);
 
             // send tee
 
@@ -108,19 +105,15 @@ pub async fn dispatch_task(server: SharedState, mut rx: mpsc::Receiver<u32>) {
                                 "user": "", 
                                 "seed": "",
                                 "signature": "",
-                                "job": {
-                                        "id": "",
-                                        "model": "",
-                                        "promote": "",
-                                        "params": {
-                                            "max_tokens": 1024
-                                        }
-                                    }
+                                "id": q.id,
+                                "job": q.job,
                             }
                         ]),
                         result: None,
                     };
                     tx.send(msg.into()).await.unwrap();
+
+                    // TODO create job result with status
                 }
                 
             }
