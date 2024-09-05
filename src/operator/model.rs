@@ -22,3 +22,9 @@ pub struct OperatorRegisterResp {
     pub message: Value,
     pub result: Value,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OperatorInfoReq {
+    pub operator: String,
+}

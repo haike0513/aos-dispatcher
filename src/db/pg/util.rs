@@ -53,6 +53,7 @@ pub fn create_job_answer(conn: &mut PgConnection, ans: &Answer) -> Result<(), di
 pub fn create_operator(conn: &mut PgConnection, op: &Operator) -> Result<(), diesel::result::Error> {
   diesel::insert_into(crate::schema::operator::table)
       .values(op)
+      // .on_conflict_do_nothing()
       .execute(conn)?;
 
   Ok(())
@@ -121,4 +122,10 @@ pub fn query_operators(conn: &mut PgConnection) -> Result<Vec<Operator>, diesel:
     // .as_query()
     .load(conn);
   r
+}
+
+pub fn get_operator_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Operator, diesel::result::Error> {
+  operator::table
+      .filter(operator::id.eq(q_id))
+      .first::<Operator>(conn)
 }
