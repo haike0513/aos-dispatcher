@@ -9,7 +9,7 @@ use nostr_sdk::EventId;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use uuid::uuid;
-use crate::db::pg::util::get_answer_by_id;
+use crate::db::pg::util::{get_answer_by_id, get_job_result_by_id};
 use crate::job::model::{JobResultReq, JobResultResp, JobTask};
 use crate::service::nostr::model::JobAnswer;
 use crate::tee::model::*;
@@ -30,14 +30,14 @@ pub async fn submit_job(State(server): State<SharedState>, Json(req): Json<Submi
   let job = JobTask::create_with(&req, keys);
   let question = job.into();
   let mut conn = server.pg.get().expect("Failed to get a connection from pool");
-  let q = pg::util::create_question(&mut conn, &question).expect("Error saving new question");
+  let q = pg::util::create_job_request(&mut conn, &question).expect("Error saving new question");
 
   // dispatch task
   dispatch_tx.send(2).await.unwrap();
 
   Json(json!({
     "code": 200,
-    "result": q.request_id,
+    "result": q.id,
 }))
 }
 
@@ -47,7 +47,7 @@ pub async fn query_job_result(State(server): State<SharedState>, Json(req): Json
     let mut server = server.0.write().await;
 
     let mut conn = server.pg.get().expect("Failed to get a connection from pool");
-    let answer = get_answer_by_id(&mut conn, &req.id.to_string()).unwrap();
+    let answer = get_job_result_by_id(&mut conn, &req.id.to_string()).unwrap();
 
     let response = json!({
         "code": 200,

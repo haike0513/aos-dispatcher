@@ -3,11 +3,11 @@ use diesel::upsert::excluded;
 use serde::Deserialize;
 use diesel::prelude::*;
 
-use crate::schema::answers;
+use crate::schema::{answers, job_result};
 use crate::db::pg::model::{Question, Answer};
 use crate::schema::answers::dsl::{request_id as answer_request_id};
 
-use super::model::Operator;
+use super::model::{JobRequest, JobResult, Operator};
 
 
 pub fn serialize_naive_datetime<S>(
@@ -74,4 +74,26 @@ pub fn sync_operators_info(conn: &mut PgConnection, operators: &Vec<Operator>) -
       .returning(Operator::as_returning())
       .get_results(conn)
       // .expect("Error saving new question")
+}
+
+pub fn create_job_request(conn: &mut PgConnection, q: &JobRequest) -> Result<JobRequest, diesel::result::Error> {
+  diesel::insert_into(crate::schema::job_request::table)
+      .values(q)
+      .returning(JobRequest::as_returning())
+      .get_result(conn)
+      // .expect("Error saving new question")
+}
+
+pub fn create_job_result(conn: &mut PgConnection, ans: &JobResult) -> Result<(), diesel::result::Error> {
+  diesel::insert_into(crate::schema::job_result::table)
+      .values(ans)
+      .execute(conn)?;
+  Ok(())
+}
+
+pub fn get_job_result_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Option<JobResult>, diesel::result::Error> {
+  job_result::table
+      .filter(job_result::id.eq(q_id))
+      .first::<JobResult>(conn)
+      .optional()
 }

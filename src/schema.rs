@@ -16,6 +16,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    job_request (id) {
+        id -> Varchar,
+        job -> Json,
+        job_type -> Varchar,
+        status -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    job_result (id) {
+        id -> Varchar,
+        job_id -> Varchar,
+        operator -> Varchar,
+        result -> Json,
+        signature -> Varchar,
+        job_type -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     operator (id) {
         id -> Varchar,
         name -> Varchar,
@@ -66,6 +88,8 @@ diesel::table! {
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
+    job_request,
+    job_result,
     operator,
     opml_answers,
     opml_questions,

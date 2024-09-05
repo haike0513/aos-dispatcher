@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use diesel::associations::HasTable;
+use diesel::sql_types::Json;
 use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
 use reqwest::{Client, Url};
+use serde_json::Value;
 use std::time::Duration;
 use crate::schema::answers::dsl::*;
 use crate::schema::questions;
@@ -80,6 +82,32 @@ pub struct Operator {
     pub end: String,
     pub operator_type: String,
     pub status: String,
+    #[serde(serialize_with = "serialize_naive_datetime")]
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Queryable, Selectable, Insertable, Serialize)]
+#[diesel(table_name = crate::schema::job_request)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct JobRequest {
+    pub id: String,
+    pub job: Value,
+    pub job_type: String,
+    pub status: String,
+    #[serde(serialize_with = "serialize_naive_datetime")]
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Queryable, Selectable, Insertable, Serialize)]
+#[diesel(table_name = crate::schema::job_result)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct JobResult {
+    pub id: String,
+    pub job_id: String,
+    pub operator: String,
+    pub result: Value,
+    pub signature: String,
+    pub job_type: String,
     #[serde(serialize_with = "serialize_naive_datetime")]
     pub created_at: NaiveDateTime,
 }
