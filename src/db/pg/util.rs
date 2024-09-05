@@ -3,7 +3,7 @@ use diesel::upsert::excluded;
 use serde::Deserialize;
 use diesel::prelude::*;
 
-use crate::schema::{answers, job_request, job_result};
+use crate::schema::{answers, job_request, job_result, operator};
 use crate::db::pg::model::{Question, Answer};
 use crate::schema::answers::dsl::{request_id as answer_request_id};
 
@@ -45,6 +45,14 @@ pub fn create_question(conn: &mut PgConnection, q: &Question) -> Result<Question
 pub fn create_job_answer(conn: &mut PgConnection, ans: &Answer) -> Result<(), diesel::result::Error> {
   diesel::insert_into(crate::schema::answers::table)
       .values(ans)
+      .execute(conn)?;
+
+  Ok(())
+}
+
+pub fn create_operator(conn: &mut PgConnection, op: &Operator) -> Result<(), diesel::result::Error> {
+  diesel::insert_into(crate::schema::operator::table)
+      .values(op)
       .execute(conn)?;
 
   Ok(())
@@ -102,6 +110,14 @@ pub fn get_job_result_by_id(conn: &mut PgConnection, q_id: &str) -> Result<Optio
 pub fn query_new_job_request(conn: &mut PgConnection) -> Result<Vec<JobRequest>, diesel::result::Error> {
   let r = job_request::table
     .select(JobRequest::as_select())
+    // .as_query()
+    .load(conn);
+  r
+}
+
+pub fn query_operators(conn: &mut PgConnection) -> Result<Vec<Operator>, diesel::result::Error> {
+  let r = operator::table
+    .select(Operator::as_select())
     // .as_query()
     .load(conn);
   r

@@ -4,10 +4,16 @@ use serde_json::Value;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OperatorRegisterParams {
+    pub operator: String,
+    pub signature: String,
+    pub hash: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperatorRegisterReq {
-    pub address: Value,
-    pub signature: Value,
-    pub params: Value,
+    pub address: String,
+    pub signature: String,
+    pub params: OperatorRegisterParams,
 }
 
 #[derive(Serialize, Deserialize)]
