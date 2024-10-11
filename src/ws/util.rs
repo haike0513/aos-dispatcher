@@ -73,12 +73,14 @@ pub async fn receive_job_result(
     if let Some(p) = result {
         tracing::debug!("job of operator id {} connect saved", p.operator);
         let server = server.0.write().await;
+        let uuid = uuid::Uuid::new_v4();
+        let salt = uuid.to_string();
         let jr = JobResult {
             id: format!(
                 "{}_{}_{}",
                 p.operator.clone(),
                 p.job_id.clone(),
-                p.tag.clone().unwrap_or_default()
+                salt,
             ),
             verify_id: p.job_id.clone(),
             job_id: p.job_id.clone(),
