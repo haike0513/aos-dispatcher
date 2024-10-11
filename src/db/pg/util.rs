@@ -32,7 +32,12 @@ pub fn create_operator(
 ) -> Result<(), diesel::result::Error> {
     diesel::insert_into(crate::schema::operator::table)
         .values(op)
-        // .on_conflict_do_nothing()
+        .on_conflict(crate::schema::operator::id)
+        .do_update()
+        .set((
+            schema::operator::start.eq(&op.start),
+            schema::operator::end.eq(&op.end),
+        ))
         .execute(conn)?;
 
     Ok(())
