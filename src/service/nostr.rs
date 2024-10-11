@@ -16,7 +16,7 @@ pub async fn subscription_service(
     relay_url: String,
 ) -> anyhow::Result<()> {
     // let keys = Keys::from_mnemonic(MNEMONIC_PHRASE, None).unwrap();
-    let secret_key =  SecretKey::from_slice(key.as_ref())?;
+    let secret_key = SecretKey::from_slice(key.as_ref())?;
     let keys = Keys::new(secret_key);
 
     let bech32_address = keys.public_key().to_bech32().unwrap();

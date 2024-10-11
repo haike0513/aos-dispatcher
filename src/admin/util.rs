@@ -1,6 +1,7 @@
+use anyhow::anyhow;
 use diesel::{query_dsl::methods::SelectDsl, PgConnection, RunQueryDsl, SelectableHelper};
 
-use crate::{db::pg::model::Project, schema};
+use crate::{config, db::pg::model::Project, schema};
 
 use super::model::RegisterProjectReq;
 
@@ -43,4 +44,14 @@ impl AdminService for Admin {
             .load(conn)?;
         Ok(list)
     }
+}
+
+pub fn ensure_admin(token: &String, admin_token: &Option<config::Admin>) -> anyhow::Result<()> {
+    if let Some(at) = admin_token {
+        if at.token.eq(token) {
+            return Ok(());
+        }
+    }
+
+    Err(anyhow!("Invalid token"))
 }

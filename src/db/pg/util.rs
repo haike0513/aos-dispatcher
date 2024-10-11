@@ -3,7 +3,10 @@ use diesel::prelude::*;
 use diesel::upsert::excluded;
 use serde::Deserialize;
 
-use crate::schema::{self, job_request, job_result, operator};
+use crate::{
+    models::project::Project,
+    schema::{self, job_request, job_result, operator, project},
+};
 
 use super::model::{JobRequest, JobResult, Operator, User};
 
@@ -205,4 +208,12 @@ pub fn get_user_by_id(conn: &mut PgConnection, id: &str) -> Result<User, diesel:
         .select(User::as_select())
         .filter(schema::user::id.eq(id))
         .first::<User>(conn)
+}
+
+pub fn query_projects(conn: &mut PgConnection) -> Result<Vec<Project>, diesel::result::Error> {
+    let r = project::table
+        .select(Project::as_select())
+        // .as_query()
+        .load(conn);
+    r
 }

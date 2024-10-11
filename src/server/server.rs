@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::config::Config;
+use crate::db::pg::util::query_projects;
 use crate::service::nostr::model::JobAnswer;
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ pub struct Server {
     pub operator_channels: HashMap<String, mpsc::Sender<Message>>,
     pub dispatch_task_tx: Option<mpsc::Sender<u32>>,
     pub job_status_tx: Option<mpsc::Sender<JobAnswer>>,
+    pub project_token: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +47,8 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 fn run_migration(conn: &mut PgConnection) -> anyhow::Result<()> {
-    conn.run_pending_migrations(MIGRATIONS).expect("run migration error");
+    conn.run_pending_migrations(MIGRATIONS)
+        .expect("run migration error");
     Ok(())
 }
 
@@ -74,7 +77,9 @@ impl Server {
 
         let ecdsa_signer = evm_signer;
         // let ecdsa_signer = PrivateKeySigner::from_slice(&secret_key).expect("error ecdsa singer");
-        let nostr_keys = nostr::Keys::new(nostr::SecretKey::from_slice(&secret_key).unwrap_or(nostr::SecretKey::generate()));
+        let nostr_keys = nostr::Keys::new(
+            nostr::SecretKey::from_slice(&secret_key).unwrap_or(nostr::SecretKey::generate()),
+        );
         dotenv().ok();
 
         let db_url = config.custom_config.db.clone().and_then(|db| db.url);
@@ -89,6 +94,15 @@ impl Server {
 
         run_migration(&mut conn).expect("run migration error");
 
+        let project_list = query_projects(&mut conn);
+        let project_token = project_list.ok().map_or(Default::default(), |list| {
+            let mut projects: HashMap<String, String> = Default::default();
+            for p in list.iter() {
+                projects.insert(p.address.clone(), p.token.clone());
+            }
+            projects
+        });
+
         Self {
             config,
             sign_key,
@@ -99,6 +113,7 @@ impl Server {
             operator_channels: Default::default(),
             dispatch_task_tx: Some(dispatch_task_tx),
             job_status_tx: Some(job_status_tx),
+            project_token,
         }
     }
 }

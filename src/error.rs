@@ -2,7 +2,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-pub struct AppError(anyhow::Error);
+pub struct AppError(pub anyhow::Error);
 
 use axum::BoxError;
 use serde::{Deserialize, Serialize};

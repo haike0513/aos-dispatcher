@@ -8,11 +8,11 @@ use crate::db::pg::model::JobRequest;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubmitJob {
-    pub from: Value,
+    pub from: String,
     pub job: Value,
     pub user: Option<String>,
     pub tag: Option<String>,
-    pub verify: Value,
+    pub verify: String,
 }
 
 #[derive(Serialize, Deserialize)]

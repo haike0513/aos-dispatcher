@@ -5,6 +5,7 @@ use crate::db::pg::util::{
 };
 use crate::error::AppError;
 use crate::job::model::{JobResultReq, JobTask};
+use crate::job::util::ensure_project;
 use crate::schema::job_request;
 use crate::server::server::SharedState;
 use axum::extract::State;
@@ -17,9 +18,11 @@ use super::model::{JobVerifyReq, SubmitJob};
 pub async fn submit_job(
     State(server): State<SharedState>,
     Json(req): Json<SubmitJob>,
-) -> Json<serde_json::Value> {
+) -> anyhow::Result<Json<Value>, AppError>{
     tracing::debug!("submit job");
     let server = server.0.write().await;
+    let store = &server.project_token;
+    ensure_project(&req.from, &req.verify, store)?;
     let dispatch_tx = server.dispatch_task_tx.clone().unwrap();
     let keys = &server.nostr_keys;
     let job = JobTask::create_with(&req, keys);
@@ -29,10 +32,10 @@ pub async fn submit_job(
         Ok(conn) => conn,
         Err(e) => {
             tracing::error!("Failed to get a database connection: {:?}", e);
-            return Json(json!({
+            return Ok(Json(json!({
                 "code": 500,
                 "message": "",
-            }));
+            })));
         }
     };
     let q =
@@ -44,10 +47,10 @@ pub async fn submit_job(
         tracing::error!("dispatch task when submit job {}", err);
     }
 
-    Json(json!({
+    Ok(Json(json!({
         "code": 200,
         "result": q.id,
-    }))
+    })))
 }
 
 #[debug_handler]

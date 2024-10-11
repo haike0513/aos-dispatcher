@@ -5,6 +5,12 @@ use serde_json::Value;
 pub struct RegisterProjectReq {
     pub name: String,
     pub address: String,
+    pub token: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WhiteListReq {
+    pub token: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterProjectResp {

@@ -32,6 +32,11 @@ pub struct CustomDb {
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
+pub struct Admin {
+    pub token: String,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct CustomAccount {
     pub mnemonic: Option<String>,
 }
@@ -48,6 +53,7 @@ pub struct CustomConfig {
     pub nostr: Option<CustomNostr>,
     pub account: Option<CustomAccount>,
     pub db: Option<CustomDb>,
+    pub admin: Option<Admin>,
 }
 impl CustomConfig {
     pub async fn from_toml() -> Self {
@@ -100,16 +106,13 @@ impl Config {
     pub fn merge(&mut self, custom: &CustomConfig) -> Self {
         let mut config = Self::new();
         let secret_key = custom
-        .account
-        .clone()
-        .and_then(|a| a.mnemonic)
-        .and_then(|mnemonic| {
-             Keys::from_mnemonic(mnemonic, None).ok()
-        }).and_then(|p| {
-            p.secret_key().cloned().ok()
-        }).and_then(|s| {
-            Some(s.secret_bytes())
-        }).unwrap_or(SecretKey::default());
+            .account
+            .clone()
+            .and_then(|a| a.mnemonic)
+            .and_then(|mnemonic| Keys::from_mnemonic(mnemonic, None).ok())
+            .and_then(|p| p.secret_key().cloned().ok())
+            .and_then(|s| Some(s.secret_bytes()))
+            .unwrap_or(SecretKey::default());
         config.secret_key = secret_key;
         config.custom_config = custom.clone();
         config
