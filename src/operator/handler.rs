@@ -64,7 +64,7 @@ pub async fn register(
             }));
         }
     };
-    let sample_range = sample_range_of_operator(&operator, 0, 6000, 10);
+    let sample_range = sample_range_of_operator(&operator, 0, 600000, 10);
     operator.start = sample_range.0.to_string();
     operator.end = sample_range.1.to_string();
     tracing::debug!("operator {:#?} {:#?}", &operator.start, &operator.end);
