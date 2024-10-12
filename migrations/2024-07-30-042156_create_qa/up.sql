@@ -25,6 +25,7 @@ CREATE TABLE "job_result"(
 	"clock" JSON NOT NULL,
 	"signature" VARCHAR NOT NULL,
 	"job_type" VARCHAR NOT NULL,
+	"reason" VARCHAR NOT NULL,
 	"created_at" TIMESTAMP NOT NULL
 );
 

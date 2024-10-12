@@ -25,6 +25,7 @@ diesel::table! {
         clock -> Json,
         signature -> Varchar,
         job_type -> Varchar,
+        reason -> Varchar,
         created_at -> Timestamp,
     }
 }
