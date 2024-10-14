@@ -6,7 +6,7 @@ RUN cargo build --release
 
 
 FROM debian:bullseye AS prod
-RUN  apt-get update && apt-get -y install libpq5
+RUN  apt-get update && apt-get -y install libpq5 && apt-get -y install ca-certificates
 
 WORKDIR /usr/src/app
 
