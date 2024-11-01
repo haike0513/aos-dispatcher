@@ -3,10 +3,7 @@ use axum::extract::ws::Message;
 use serde_json::json;
 use tokio::sync::mpsc;
 
-use crate::{
-    db::pg::{model::JobResult, util::create_job_result},
-    server::server::SharedState,
-};
+use crate::{models::job_result::CreateJobResult, server::server::SharedState};
 
 use super::msg::{ConnectParams, JobResultParams, WsMethodMsg};
 
@@ -75,17 +72,14 @@ pub async fn receive_job_result(
         let server = server.0.write().await;
         let uuid = uuid::Uuid::new_v4();
         let salt = uuid.to_string();
-        let jr = JobResult {
-            id: format!(
-                "{}_{}_{}",
-                p.operator.clone(),
-                p.job_id.clone(),
-                salt,
-            ),
+        use crate::models::job_result::JobResult;
+        let jr = CreateJobResult {
+            id: format!("{}_{}_{}", p.operator.clone(), p.job_id.clone(), salt,),
             verify_id: p.job_id.clone(),
             job_id: p.job_id.clone(),
             operator: p.operator,
             result: p.result.into(),
+            reason: p.reason.unwrap_or("".into()),
             vrf: p.vrf.unwrap_or_default(),
             signature: p.signature.clone(),
             job_type: "".into(),
@@ -95,7 +89,9 @@ pub async fn receive_job_result(
         };
         let mut conn = server.pg.get()?;
 
-        let _ = create_job_result(&mut conn, &jr);
+        let _ = JobResult::create(&mut conn, &jr)?;
+
+        // let _ = create_job_result(&mut conn, &jr);
     } else {
         tracing::error!("there is no job result");
     }

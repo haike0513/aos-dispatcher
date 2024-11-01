@@ -6,7 +6,6 @@ use crate::db::pg::util::{
 use crate::error::AppError;
 use crate::job::model::{JobResultReq, JobTask};
 use crate::job::util::ensure_project;
-use crate::schema::job_request;
 use crate::server::server::SharedState;
 use axum::extract::State;
 use axum::{debug_handler, Json};
@@ -18,7 +17,7 @@ use super::model::{JobVerifyReq, SubmitJob};
 pub async fn submit_job(
     State(server): State<SharedState>,
     Json(req): Json<SubmitJob>,
-) -> anyhow::Result<Json<Value>, AppError>{
+) -> anyhow::Result<Json<Value>, AppError> {
     tracing::debug!("submit job");
     let server = server.0.write().await;
     let store = &server.project_token;
