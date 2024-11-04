@@ -182,6 +182,8 @@ async fn handle_socket(
                 // msg
                 // Message::Pong(vec![])
               } else {
+                  tracing::error!("🚀------------------ handle receive ws message error");
+
                   // client disconnected
                   break;
               };
